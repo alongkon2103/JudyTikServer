@@ -41,6 +41,21 @@ JudyTik Desktop → Cloudflare HTTPS → cloudflared บน Windows
 
 ระบบบัญชี Discord, Actions presets, WIN, Soundpad, TTS, Overlay settings, ประวัติ LIVE และรายการของขวัญอยู่ใน API นี้ การเชื่อม LIVE/คิว Actions/การกดปุ่มและสื่อยังทำงานใน Desktop ตามเดิม ไม่รันเกมหรือส่งปุ่มจาก VPS
 
+## แพตช์ LIVE signing และเวลา VPS
+
+LIVE signing ตรวจอายุสิทธิ์เทียบกับ `Date` ของคำตอบ HTTPS จาก Euler และใช้ monotonic timer วัดเวลารับส่ง จึงไม่ใช้เวลา Windows ในการตรวจวันหมดอายุของสิทธิ์นี้ ยังคงจำกัดอายุที่ประกาศไว้ไม่เกิน 60 วินาที และปฏิเสธเวลาที่ผิดรูปแบบ คำตอบที่ระบุว่าเก่าจาก cache และสิทธิ์ที่หมดอายุระหว่างรับส่ง
+
+แพตช์นี้ไม่ซิงก์นาฬิกา Windows ทั้งเครื่อง ไม่เปลี่ยน auth clock ของระบบอื่น ไม่เปลี่ยน schema/ค่าลับ/dependencies และไม่ต้อง build Electron อัปเดตบน VPS ผ่าน PowerShell:
+
+```powershell
+Set-Location C:\JudyTikServer
+git pull
+if ($LASTEXITCODE -ne 0) { throw 'git pull ไม่สำเร็จ' }
+npm --prefix server run build
+if ($LASTEXITCODE -ne 0) { throw 'build Backend ไม่สำเร็จ' }
+pm2 restart judytik-backend
+```
+
 ## พัฒนาและทดสอบ
 
 ใช้ Node.js 24 รันจาก server:

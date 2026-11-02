@@ -7,6 +7,7 @@ import { ApiError } from '../http/api-error.js'
 import { liveAuthorizationRequestSchema, liveAuthorizationSchema, type LiveAuthorization } from './contracts.js'
 
 export const LIVE_FETCH = Symbol('LiveSigningFetch')
+export const LIVE_MONOTONIC = Symbol('LiveSigningMonotonic')
 const TTL_MS = 60_000
 const OWNER_COOLDOWN_MS = 15_000
 const MAX_OWNERS = 10_000
@@ -25,6 +26,7 @@ export class LiveService {
     @Inject(CONFIG) private readonly config: ServerConfig,
     @Inject(CLOCK) private readonly clock: Clock,
     @Optional() @Inject(LIVE_FETCH) private readonly fetcher: typeof fetch = fetch,
+    @Optional() @Inject(LIVE_MONOTONIC) private readonly monotonic: () => number = () => performance.now(),
   ) {}
 
   async authorize(session: VerifiedSession, body: unknown, caller?: AbortSignal): Promise<LiveAuthorization> {
@@ -45,11 +47,12 @@ export class LiveService {
       caller?.aborted ? 499 : 503,
       caller?.aborted ? 'LIVE_REQUEST_CANCELLED' : 'LIVE_SIGNING_UNAVAILABLE',
     )
+    const requestedAt = this.monotonic()
     let response: Response
     try {
       response = await this.fetcher(`https://api.eulerstream.com/accounts/${config.accountId}/jwt/create`, {
         method: 'POST',
-        headers: { accept: 'application/json', 'content-type': 'application/json', 'x-api-key': config.apiKey },
+        headers: { accept: 'application/json', 'content-type': 'application/json', 'cache-control': 'no-store', 'x-api-key': config.apiKey },
         redirect: 'error', signal,
         body: JSON.stringify({
           metadata: { version: 'v2', expireAfter: TTL_MS / 1000 },
@@ -96,13 +99,23 @@ export class LiveService {
     const parsed = upstreamSchema.safeParse(data)
     if (!parsed.success || parsed.data.token.includes(config.apiKey))
       throw new ApiError(503, 'LIVE_SIGNING_INVALID')
+    // Trust only the clock on this fresh, authenticated HTTPS response from Euler.
+    // HTTP Date has whole-second precision; reserve that second and the entire request time.
+    const date = response.headers.get('date')
+    const providerTime = Date.parse(date ?? '')
+    const age = response.headers.get('age')
+    if (!Number.isFinite(providerTime) || new Date(providerTime).toUTCString() !== date ||
+      (age !== null && age !== '0'))
+      throw new ApiError(503, 'LIVE_SIGNING_INVALID')
+    const elapsed = Math.max(0, this.monotonic() - requestedAt)
     const rawExpiry = parsed.data.config.expiresAt
     const expiry = rawExpiry < 100_000_000_000 ? rawExpiry * 1000 : rawExpiry
-    if (expiry <= this.clock.now().getTime() || expiry > now + TTL_MS + 5000)
+    const deadline = Math.min(expiry, providerTime + TTL_MS)
+    if (deadline <= providerTime + 1000 + elapsed || expiry > providerTime + TTL_MS + 5000)
       throw new ApiError(503, 'LIVE_SIGNING_INVALID')
     return {
       mode: 'jwt', username, token: parsed.data.token,
-      expiresAt: new Date(Math.min(expiry, now + TTL_MS)).toISOString(),
+      expiresAt: new Date(deadline).toISOString(),
     }
   }
 }

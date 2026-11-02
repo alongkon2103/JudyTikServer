@@ -98,11 +98,12 @@ const otherOwner = { ...owner, userId: 'owner-two' as VerifiedUserId }
 const start = Date.parse('2026-10-26T00:00:00.000Z')
 const token = 'fixture_short_lived_euler_token'
 const upstream = (expiresAt = start + 60_000) => ({ code: 200, token, config: { expiresAt } })
-function serviceFixture(fetcher: typeof fetch) {
-  let now = start
+const eulerResponse = (data: unknown, date: string | null = new Date(start).toUTCString()) => Response.json(data, { headers: date === null ? {} : { date } })
+function serviceFixture(fetcher: typeof fetch, wallTime = start) {
+  let now = wallTime, elapsed = 0
   const clock: Clock = { now: () => new Date(now) }
-  const service = new LiveService({ ...readConfig(baseEnv), live: credentials }, clock, fetcher)
-  return { service, advance: (ms: number) => { now += ms } }
+  const service = new LiveService({ ...readConfig(baseEnv), live: credentials }, clock, fetcher, () => elapsed)
+  return { service, advance: (ms: number) => { now += ms; elapsed += ms }, advanceElapsed: (ms: number) => { elapsed += ms }, setWallTime: (value: number) => { now = value } }
 }
 async function rejectsCode(operation: Promise<unknown>, status: number, code: string) {
   await assert.rejects(operation, error => {
@@ -119,7 +120,7 @@ test('LIVE JWT uses the fixed Euler account endpoint with header-only key, 60s T
   const requests: { url: string; init?: RequestInit }[] = []
   const h = serviceFixture(async (url, init) => {
     requests.push({ url: String(url), init })
-    return Response.json(upstream())
+    return eulerResponse(upstream())
   })
   assert.deepEqual(await h.service.authorize(owner, { username: '@Creator_2' }), {
     mode: 'jwt', username: 'Creator_2', token, expiresAt: '2026-10-26T00:01:00.000Z',
@@ -140,10 +141,64 @@ test('LIVE JWT uses the fixed Euler account endpoint with header-only key, 60s T
 })
 
 test('LIVE JWT caps the advertised expiry at 60s and accepts upstream Unix seconds', async () => {
-  const h = serviceFixture(async () => Response.json(upstream((start + 45_000) / 1000)))
+  const h = serviceFixture(async () => eulerResponse(upstream((start + 45_000) / 1000)))
   const value = await h.service.authorize(owner, { username: 'creator' })
   assert.equal(value.mode, 'jwt')
   if (value.mode === 'jwt') assert.equal(value.expiresAt, '2026-10-26T00:00:45.000Z')
+})
+
+for (const skew of [-300_000, -13_000, 13_000, 300_000]) test(`LIVE JWT uses Euler's response time with a VPS clock offset of ${skew}ms`, async () => {
+  const h = serviceFixture(async () => eulerResponse(upstream()), start + skew)
+  const value = await h.service.authorize(owner, { username: 'creator' })
+  assert.equal(value.mode, 'jwt')
+  if (value.mode === 'jwt') assert.equal(value.expiresAt, '2026-10-26T00:01:00.000Z')
+})
+
+test('LIVE JWT expiry validation survives a forward wall-clock correction during its request', async () => {
+  const h = serviceFixture(async () => {
+    h.setWallTime(start + 300_000)
+    h.advanceElapsed(2_000)
+    return eulerResponse(upstream())
+  })
+  const value = await h.service.authorize(owner, { username: 'creator' })
+  if (value.mode === 'jwt') assert.equal(value.expiresAt, '2026-10-26T00:01:00.000Z')
+  else assert.fail('Expected JWT authorization')
+})
+
+test('LIVE JWT rejects a token that expires during transport even when the local clock is behind', async () => {
+  const h = serviceFixture(async () => {
+    h.advanceElapsed(3_000)
+    return eulerResponse(upstream(start + 3_000))
+  }, start - 13_000)
+  await rejectsCode(h.service.authorize(owner, { username: 'creator' }), 503, 'LIVE_SIGNING_INVALID')
+})
+
+test('LIVE JWT includes time spent reading a streamed response body in its expiry budget', async () => {
+  const h = serviceFixture(async () => new Response(new ReadableStream<Uint8Array>({
+    start(controller) { controller.enqueue(new TextEncoder().encode(JSON.stringify(upstream(start + 3_000)))) },
+    pull(controller) { h.advanceElapsed(3_000); controller.close() },
+  }), { headers: { date: new Date(start).toUTCString() } }), start - 13_000)
+  await rejectsCode(h.service.authorize(owner, { username: 'creator' }), 503, 'LIVE_SIGNING_INVALID')
+})
+
+test('LIVE JWT accounts for the one-second precision of HTTP Date', async () => {
+  const h = serviceFixture(async () => eulerResponse(upstream(start + 999)))
+  await rejectsCode(h.service.authorize(owner, { username: 'creator' }), 503, 'LIVE_SIGNING_INVALID')
+})
+
+for (const date of [null, 'not-a-date', '2026-10-26T00:00:00.000Z']) test(`LIVE JWT rejects an unavailable or malformed provider Date: ${date}`, async () => {
+  const h = serviceFixture(async () => eulerResponse(upstream(), date))
+  await rejectsCode(h.service.authorize(owner, { username: 'creator' }), 503, 'LIVE_SIGNING_INVALID')
+})
+
+for (const age of ['1', '-1', 'invalid']) test(`LIVE JWT rejects a cached or invalid Age response: ${age}`, async () => {
+  const h = serviceFixture(async () => { const r = eulerResponse(upstream()); r.headers.set('age', age); return r })
+  await rejectsCode(h.service.authorize(owner, { username: 'creator' }), 503, 'LIVE_SIGNING_INVALID')
+})
+
+test('LIVE JWT accepts an explicitly fresh Age zero response', async () => {
+  const h = serviceFixture(async () => { const r = eulerResponse(upstream()); r.headers.set('age', '0'); return r })
+  assert.equal((await h.service.authorize(owner, { username: 'creator' })).mode, 'jwt')
 })
 
 test('LIVE JWT rate cap is owner-bound across sessions, counts failures, and expires', async () => {
@@ -162,11 +217,11 @@ for (const [label, response, code] of [
   ['HTTP failure', () => new Response(credentials.apiKey, { status: 401 }), 'LIVE_SIGNING_UNAVAILABLE'],
   ['redirect', () => new Response('', { status: 302, headers: { location: 'https://attacker.invalid/' } }), 'LIVE_SIGNING_UNAVAILABLE'],
   ['invalid JSON', () => new Response('{oops'), 'LIVE_SIGNING_INVALID'],
-  ['upstream failure code', () => Response.json({ code: 401, token: credentials.apiKey }), 'LIVE_SIGNING_INVALID'],
-  ['missing expiry', () => Response.json({ code: 200, token }), 'LIVE_SIGNING_INVALID'],
-  ['expired token', () => Response.json(upstream(start - 1)), 'LIVE_SIGNING_INVALID'],
-  ['long TTL', () => Response.json(upstream(start + 120_000)), 'LIVE_SIGNING_INVALID'],
-  ['key echoed as token', () => Response.json({ ...upstream(), token: credentials.apiKey }), 'LIVE_SIGNING_INVALID'],
+  ['upstream failure code', () => eulerResponse({ code: 401, token: credentials.apiKey }), 'LIVE_SIGNING_INVALID'],
+  ['missing expiry', () => eulerResponse({ code: 200, token }), 'LIVE_SIGNING_INVALID'],
+  ['expired token', () => eulerResponse(upstream(start - 1)), 'LIVE_SIGNING_INVALID'],
+  ['long TTL', () => eulerResponse(upstream(start + 120_000)), 'LIVE_SIGNING_INVALID'],
+  ['key echoed as token', () => eulerResponse({ ...upstream(), token: credentials.apiKey }), 'LIVE_SIGNING_INVALID'],
   ['oversized body', () => new Response('x'.repeat(16 * 1024 + 1)), 'LIVE_SIGNING_INVALID'],
 ] as const) test(`LIVE JWT rejects ${label} without fallback or secret disclosure`, async () => {
   const h = serviceFixture(async () => response())
@@ -211,7 +266,7 @@ test('LIVE JWT owner capacity refuses new issuance instead of evicting active li
 })
 
 test('LIVE HTTP returns only the JWT contract and sanitized upstream failures', async () => {
-  const h = serviceFixture(async () => Response.json({ ...upstream(), debug: credentials.apiKey }))
+  const h = serviceFixture(async () => eulerResponse({ ...upstream(), debug: credentials.apiKey }))
   const http = await httpFixture(h.service)
   try {
     const response = await http.request({ username: 'creator' })
