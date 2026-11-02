@@ -10,6 +10,19 @@
 - Logs: `C:\ProgramData\JudyTik\logs`
 - PostgreSQL ตัวอย่าง: `C:\Program Files\PostgreSQL\17\bin` ปรับตามรุ่นที่ติดตั้ง
 
+## ถ้าใช้ PM2 อยู่แล้ว
+
+ถ้าสร้างฐานข้อมูล ตั้ง `server/.env` และรัน dependencies/build/migrations/grants เรียบร้อยแล้ว ให้ใช้ PM2 ตามนี้ได้เลย ไม่ต้องรัน Initialize-Environment, deploy/start.mjs หรือติดตั้ง WinSW สำหรับ Backend นี้ ส่วนคู่มือถัดไปเป็นวิธีติดตั้งด้วย WinSW แยกต่างหาก
+
+```cmd
+cd C:\JudyTikServer
+pm2 start ecosystem.config.cjs
+pm2 save
+pm2 logs judytik-backend
+```
+
+ถ้า clone ไว้ตำแหน่งอื่นให้เปลี่ยน cd ตามจริง `cwd` ใน ecosystem อ้างอิงตำแหน่งไฟล์เองจึงไม่ต้องแก้ path ใน config หลังแก้ .env ใช้ `pm2 restart ecosystem.config.cjs --update-env` ดูขั้น PM2 แบบสั้นที่ root README
+
 ## 1. เตรียมเครื่องและโค้ด
 
 ติดตั้ง Git, [Node.js 24](https://nodejs.org/en/download), [PostgreSQL สำหรับ Windows](https://www.postgresql.org/download/windows/) และ cloudflared ตามขั้น Tunnel ด้านล่าง ติดตั้ง Node.js แบบ machine-wide ที่ `C:\Program Files\nodejs` เพื่อให้ LocalService ใช้ได้ (ไม่ใช้ Node ที่อยู่เฉพาะใน profile ของผู้ดูแล)

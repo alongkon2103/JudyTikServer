@@ -2,6 +2,28 @@
 
 Backend แยกสำหรับ JudyTik: NestJS / Node.js 24 / Prisma 7 / PostgreSQL ไม่รวม React หรือ Electron และไม่ต้องติดตั้ง dependencies ของโปรแกรม Desktop
 
+## รันด้วย PM2
+
+ตั้ง `server/.env`, ติดตั้ง dependencies, generate Prisma, ใช้ migrations/grants และ build Backend ให้เรียบร้อยก่อน จากโฟลเดอร์ root ของ repository:
+
+```cmd
+pm2 start ecosystem.config.cjs
+pm2 save
+pm2 logs judytik-backend
+```
+
+ไฟล์นี้ใช้ Node ตัวเดียวกับที่เปิด PM2 (ต้องเป็น Node 24), รัน `server/dist/main.js` หนึ่ง process และโหลด `.env` จาก cwd `server` โดยไม่ใส่ค่าลับลง ecosystem
+
+หลังแก้ `.env`:
+
+```cmd
+pm2 restart ecosystem.config.cjs --update-env
+```
+
+หลังอัปเดตโค้ด ให้หยุด process, build/migrate/grant ตามคู่มือ แล้วเปิดใหม่ ไม่ใช้ watch ใน production ถ้ามี npm start หรือ Windows Service รัน Backend นี้อยู่ ให้หยุดตัวเดิมก่อนใช้ PM2 เพื่อไม่ให้ชนพอร์ต 4300 ใช้ PM2 เป็นตัวดูแล Backend นี้เพียงตัวเดียว
+
+`pm2 save` เก็บรายการ process; การเปิด PM2 อัตโนมัติเมื่อ Windows reboot ต้องตั้งแยกในเครื่องที่ใช้งาน ไฟล์นี้ไม่ติดตั้ง startup service ให้
+
 **คู่มือหลัก: [Windows Server + Cloudflare Tunnel](deploy/windows/README.md)** สำหรับ `https://judytik.judygamestudio.com` และ PostgreSQL บน VPS เดียวกัน
 
 ```text
