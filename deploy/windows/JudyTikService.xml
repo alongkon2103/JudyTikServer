@@ -1,0 +1,16 @@
+<service>
+  <id>JudyTikBackend</id>
+  <name>JudyTik Backend</name>
+  <description>JudyTik API on loopback behind Cloudflare Tunnel</description>
+  <executable>%ProgramFiles%\nodejs\node.exe</executable>
+  <arguments>"%BASE%\..\start.mjs" "%ProgramData%\JudyTik\runtime.env"</arguments>
+  <workingdirectory>%BASE%\..\..\server</workingdirectory>
+  <startmode>Automatic</startmode>
+  <serviceaccount><domain>NT AUTHORITY</domain><user>LocalService</user></serviceaccount>
+  <onfailure action="restart" delay="10 sec" />
+  <resetfailure>1 hour</resetfailure>
+  <stoptimeout>30 sec</stoptimeout>
+  <stopparentprocessfirst>true</stopparentprocessfirst>
+  <logpath>%ProgramData%\JudyTik\logs</logpath>
+  <log mode="roll-by-size"><sizeThreshold>10240</sizeThreshold><keepFiles>5</keepFiles></log>
+</service>

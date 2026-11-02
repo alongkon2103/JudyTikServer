@@ -1,0 +1,3350 @@
+{
+  "openapi": "3.1.1",
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "info": {
+    "title": "JudyTik Cloud Foundation API",
+    "version": "1.0.0-design",
+    "description": "DESIGN CONTRACT only. No live backend/DB/provider is configured. Cloud preset ownership, PKCE-brokered native auth, session rotation and optimistic concurrency. Secret-bearing endpoints are main-process only. See the architecture spec for semantic checks and policies."
+  },
+  "servers": [
+    {
+      "url": "https://api.example.invalid/v1",
+      "description": "Production origin placeholder; never a real credential/deployment."
+    },
+    {
+      "url": "http://127.0.0.1:4300/v1",
+      "description": "Development example only."
+    }
+  ],
+  "security": [
+    {
+      "desktopSession": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Operations"
+    },
+    {
+      "name": "Auth"
+    },
+    {
+      "name": "Account"
+    },
+    {
+      "name": "Settings"
+    },
+    {
+      "name": "Presets"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "getHealth",
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Liveness only",
+        "description": "Does not return database addresses, versions, environment or secrets.",
+        "responses": {
+          "200": {
+            "description": "Process is running.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "const": "ok"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "security": []
+      }
+    },
+    "/auth/desktop/attempts": {
+      "post": {
+        "operationId": "startDesktopAuth",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Create a PKCE-bound Desktop sign-in attempt",
+        "description": "Limit 10/min/IP. Redirect URI must be exactly 127.0.0.1, port 1024–65535 and /oauth/callback, with no credentials/query/fragment. No network call to the supplied URI.",
+        "responses": {
+          "201": {
+            "description": "Attempt created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthAttempt"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-cache"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthAttemptRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/desktop/authorize": {
+      "get": {
+        "operationId": "showDesktopAuthorization",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Show browser confirmation for a Desktop sign-in attempt",
+        "description": "This is an authentication broker page, not the sales website. Does not automatically authorize an unconfirmed attempt.",
+        "responses": {
+          "200": {
+            "description": "Minimal server-rendered confirmation; HTML-escaped device label, session-bound CSRF token and secure HttpOnly SameSite=Lax browser cookie.",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        },
+        "security": [],
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      },
+      "post": {
+        "operationId": "confirmDesktopAuthorization",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Confirm browser intent and redirect to the selected provider",
+        "description": "Require matching browser CSRF token/cookie and an unexpired attempt. Redact form/token values from logs.",
+        "responses": {
+          "302": {
+            "description": "Server-generated Google/Discord authorize URL; state bound to attempt and browser session.",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        },
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "attemptId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "csrfToken": {
+                    "type": "string",
+                    "minLength": 43,
+                    "maxLength": 128,
+                    "pattern": "^[A-Za-z0-9_-]+$"
+                  }
+                },
+                "required": [
+                  "attemptId",
+                  "csrfToken"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/oauth/{provider}/callback": {
+      "get": {
+        "operationId": "completeProviderAuth",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Consume provider callback and issue one-time Desktop code",
+        "description": "Validate/consume OAuth state atomically, browser binding and provider identity proof. Exactly one of code/error is allowed. Never merge identities solely by matching email. Ignore documented provider-specific auxiliary query fields; reject duplicate state/code/error and enforce exactly one of code/error before any exchange.",
+        "responses": {
+          "302": {
+            "description": "Redirect to the exact stored loopback URI, with code/client state or a safe error/client state. No session tokens in URL.",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Provider"
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 43,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          },
+          {
+            "name": "code",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            }
+          },
+          {
+            "name": "error",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          }
+        ]
+      }
+    },
+    "/auth/desktop/cancel": {
+      "post": {
+        "operationId": "cancelDesktopAuth",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Cancel a sign-in attempt with proof of its PKCE verifier",
+        "description": "Cancel and grant exchange lock the same attempt row. Verify PKCE proof first. If cancellation wins, mark cancelled atomically and invalidate any issued but unconsumed grant; token exchange and later callbacks must reject it. If exchange already consumed the grant, return 409 AUTH_ATTEMPT_ALREADY_CONSUMED rather than claiming cancellation; cancelling an attempt is not session logout.",
+        "responses": {
+          "204": {
+            "description": "Attempt cancelled or already cancelled; any unconsumed grant is invalid."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          },
+          "409": {
+            "description": "AUTH_ATTEMPT_ALREADY_CONSUMED: exchange won. Main must log out if credentials were received and the user still wants to cancel; an ambiguous exchange is not proof that a session was revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelAttempt"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/token": {
+      "post": {
+        "operationId": "exchangeToken",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Exchange a one-use code or rotate a refresh token",
+        "description": "Consume code/refresh in an atomic transaction. Authorization-code exchange locks the attempt row, checks cancelledAt is null, attempt and grant expiry, PKCE, redirect URI and unused grant before creating a session and consuming the grant atomically. Cancel and exchange serialize on this row; cancelled grants return 401. Refresh reuse revokes that session family. Do not blindly retry an exchange after an ambiguous network failure.",
+        "responses": {
+          "200": {
+            "description": "Desktop session credentials for main process only.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tokens"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-cache"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        },
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "logoutCurrentSession",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Revoke current session and its refresh family",
+        "description": "",
+        "responses": {
+          "204": {
+            "description": "Revoked. Main must also clear local credentials."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/me": {
+      "get": {
+        "operationId": "getMe",
+        "tags": [
+          "Account"
+        ],
+        "summary": "Read the authenticated account",
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "Current account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/me/entitlements": {
+      "get": {
+        "operationId": "getEntitlements",
+        "tags": [
+          "Account"
+        ],
+        "summary": "Read server-computed effective plan and expiry",
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "Effective plan, not a client-writable capability.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entitlements"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/me/sessions": {
+      "get": {
+        "operationId": "listOwnSessions",
+        "tags": [
+          "Account"
+        ],
+        "summary": "List sessions belonging to this account",
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "Own sessions only.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Session"
+                      },
+                      "minItems": 0,
+                      "maxItems": 1000
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/me/sessions/{sessionId}": {
+      "delete": {
+        "operationId": "revokeOwnSession",
+        "tags": [
+          "Account"
+        ],
+        "summary": "Revoke one of the current account sessions",
+        "description": "",
+        "responses": {
+          "204": {
+            "description": "Session revoked."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SessionId"
+          }
+        ]
+      }
+    },
+    "/me/email/challenges": {
+      "post": {
+        "operationId": "requestEmailVerification",
+        "tags": [
+          "Account"
+        ],
+        "summary": "Request a one-use email verification challenge",
+        "description": "Production code is random, 6 digits, TTL 10 min, HMAC stored, max 5 guesses. At least 60 sec between sends; 3/15 min/account and 10/hour/IP. One active challenge per user. No fixed mockup code accepted.",
+        "responses": {
+          "202": {
+            "description": "Generic acceptance; does not disclose whether email belongs to another account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailChallenge"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailChallengeRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/email/challenges/{challengeId}/verify": {
+      "post": {
+        "operationId": "verifyEmail",
+        "tags": [
+          "Account"
+        ],
+        "summary": "Consume a valid email code and update verified email",
+        "description": "Challenge must belong to authenticated user, be active/unexpired and have attempts remaining. Never reassign an email already verified by another account.",
+        "responses": {
+          "200": {
+            "description": "Verified account email.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifiedEmail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailCode"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ChallengeId"
+          }
+        ]
+      }
+    },
+    "/me/settings": {
+      "get": {
+        "operationId": "getSettings",
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Read Cloud theme/language with ETag",
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "Settings initialized with account creation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Settings"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Strong revision ETag, e.g. \"1\".",
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 21,
+                  "pattern": "^\"(0|[1-9][0-9]*)\"$"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "put": {
+        "operationId": "replaceSettings",
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Replace settings using a strong revision precondition",
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "Settings saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Settings"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Strong revision ETag, e.g. \"1\".",
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 21,
+                  "pattern": "^\"(0|[1-9][0-9]*)\"$"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          },
+          "428": {
+            "$ref": "#/components/responses/PreconditionRequired"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingsWrite"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 21,
+              "pattern": "^\"(0|[1-9][0-9]*)\"$"
+            },
+            "description": "Strong ETag from the last read. Required for updates/deletes/settings. Missing precondition returns 428; stale returns 412."
+          }
+        ]
+      }
+    },
+    "/presets": {
+      "get": {
+        "operationId": "listPresets",
+        "tags": [
+          "Presets"
+        ],
+        "summary": "Read a stable paginated Cloud preset snapshot",
+        "description": "With after, collectionRevision is required. Read revision+rows in a RepeatableRead transaction. Changed revision returns 409 PRESET_COLLECTION_CHANGED; restart from page one. Never replace cache with a partial snapshot.",
+        "responses": {
+          "200": {
+            "description": "Visible own presets only, UUID ascending.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresetPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "collectionRevision",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 19,
+              "pattern": "^(0|[1-9][0-9]*)$"
+            }
+          }
+        ]
+      }
+    },
+    "/presets/{presetId}": {
+      "get": {
+        "operationId": "getPreset",
+        "tags": [
+          "Presets"
+        ],
+        "summary": "Read an own preset and its ETag",
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "Preset.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Preset"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Strong revision ETag, e.g. \"1\".",
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 21,
+                  "pattern": "^\"(0|[1-9][0-9]*)\"$"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PresetId"
+          }
+        ]
+      },
+      "put": {
+        "operationId": "savePreset",
+        "tags": [
+          "Presets"
+        ],
+        "summary": "Create or replace one Cloud preset",
+        "description": "Exactly one precondition: If-None-Match:* for creation; strong If-Match for replacement. Missing=428, both=400, stale/existing=412. Owner comes from session. Lock own users row then mutate preset, revision, collection revision and audit atomically. Never execute a stored effect. On ambiguous save outcome, read/compare before deciding whether to retry.",
+        "responses": {
+          "200": {
+            "description": "Updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Preset"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Strong revision ETag, e.g. \"1\".",
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 21,
+                  "pattern": "^\"(0|[1-9][0-9]*)\"$"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Preset"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Strong revision ETag, e.g. \"1\".",
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 21,
+                  "pattern": "^\"(0|[1-9][0-9]*)\"$"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          },
+          "428": {
+            "$ref": "#/components/responses/PreconditionRequired"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresetWrite"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PresetId"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          },
+          {
+            "$ref": "#/components/parameters/IfNoneMatch"
+          }
+        ],
+        "x-write-preconditions": {
+          "create": "If-None-Match: *",
+          "replace": "If-Match: \"revision\"",
+          "mutuallyExclusive": true
+        }
+      },
+      "delete": {
+        "operationId": "deletePreset",
+        "tags": [
+          "Presets"
+        ],
+        "summary": "Soft-delete one own preset with a strong revision precondition",
+        "description": "",
+        "responses": {
+          "204": {
+            "description": "Tombstone saved. Public reads now return 404."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "412": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          },
+          "428": {
+            "$ref": "#/components/responses/PreconditionRequired"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PresetId"
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 21,
+              "pattern": "^\"(0|[1-9][0-9]*)\"$"
+            },
+            "description": "Strong ETag from the last read. Required for updates/deletes/settings. Missing precondition returns 428; stale returns 412."
+          }
+        ]
+      }
+    },
+    "/auth/desktop/launch": {
+      "get": {
+        "operationId": "launchDesktopAuthorization",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Open the selected provider directly with a one-use native launch capability",
+        "description": "The HMAC capability is bound to the attempt, PKCE challenge, state, exact loopback and expiry. Browser cookie and provider state remain separate. No account tokens in this URL. Legacy consent flow remains available separately.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "launch",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{43}$"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Set signed HttpOnly browser binding and redirect to the provider.",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/me/soundpad": {
+      "get": {
+        "operationId": "getSoundpad",
+        "security": [
+          {
+            "desktopSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account Soundpad document; revision 0 is the unsaved empty default.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SoundpadDocument"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "saveSoundpad",
+        "security": [
+          {
+            "desktopSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Quoted current revision, including \"0\" for the first save."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SoundpadData"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Account Soundpad document; revision 0 is the unsaved empty default.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SoundpadDocument"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "SOUNDPAD_VERSION_CONFLICT; keep local edits and explicitly reload."
+          }
+        }
+      }
+    },
+    "/me/tts": {
+      "get": {
+        "operationId": "getTts",
+        "security": [
+          {
+            "desktopSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account TTS settings only; queue, chats and installed voices remain local. Revision 0 is the unsaved default.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TtsDocument"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "saveTts",
+        "security": [
+          {
+            "desktopSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Quoted current revision; use \"0\" for initial save."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TtsData"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Account TTS settings only; queue, chats and installed voices remain local. Revision 0 is the unsaved default.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TtsDocument"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "TTS_VERSION_CONFLICT; retain local edits and explicitly reload."
+          }
+        }
+      }
+    },
+    "/me/overlays": {
+      "get": {
+        "operationId": "getOverlays",
+        "security": [
+          {
+            "desktopSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account Overlay settings only; LIVE events, queues and animation state remain local. Revision 0 is the unsaved default.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverlayDocument"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Load account Overlay settings"
+      },
+      "put": {
+        "operationId": "saveOverlays",
+        "security": [
+          {
+            "desktopSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Quoted current revision; use \"0\" for initial save."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OverlayData"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Account Overlay settings only; LIVE events, queues and animation state remain local. Revision 0 is the unsaved default.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverlayDocument"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "OVERLAY_VERSION_CONFLICT; retain local edits and explicitly reload."
+          }
+        },
+        "summary": "Save account Overlay settings with optimistic concurrency"
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "desktopSession": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Access token held by Electron main. Backend also checks active session and ownership."
+      }
+    },
+    "parameters": {
+      "PresetId": {
+        "name": "presetId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "SessionId": {
+        "name": "sessionId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "ChallengeId": {
+        "name": "challengeId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "Provider": {
+        "name": "provider",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Provider"
+        }
+      },
+      "IfMatch": {
+        "name": "If-Match",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 21,
+          "pattern": "^\"(0|[1-9][0-9]*)\"$"
+        },
+        "description": "Strong ETag from the last read. Required for updates/deletes/settings. Missing precondition returns 428; stale returns 412."
+      },
+      "IfNoneMatch": {
+        "name": "If-None-Match",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "const": "*"
+        },
+        "description": "Required when creating a preset with a client-generated UUID."
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Malformed or semantically invalid input; unknown properties are rejected.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing, invalid, expired or revoked access session. OAuth token errors use the same safe envelope.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Authenticated account cannot perform this capability.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Missing/deleted resource or a resource belonging to another account; no ownership disclosure.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Collection changed, deleted preset UUID reused or an identity/email ownership conflict.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "PreconditionFailed": {
+        "description": "Preset/settings revision conflict. Draft must be preserved; no automatic overwrite.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "PreconditionRequired": {
+        "description": "A strong write precondition is required.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "TooLarge": {
+        "description": "Request exceeds 256 KiB.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "Rate limit exceeded.",
+        "headers": {
+          "Retry-After": {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Unavailable": {
+        "description": "Dependency unavailable or provider not configured. No internal error/secret is returned.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Provider": {
+        "type": "string",
+        "enum": [
+          "google",
+          "discord"
+        ]
+      },
+      "UUID": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "Revision": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 19,
+        "pattern": "^[1-9][0-9]*$"
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 400
+              },
+              "requestId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 240
+                    }
+                  },
+                  "required": [
+                    "path",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 0,
+                "maxItems": 20
+              },
+              "currentRevision": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 19,
+                "pattern": "^(0|[1-9][0-9]*)$"
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "requestId"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "AuthAttemptRequest": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/Provider"
+          },
+          "codeChallenge": {
+            "type": "string",
+            "minLength": 43,
+            "maxLength": 43,
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "codeChallengeMethod": {
+            "const": "S256",
+            "type": "string"
+          },
+          "clientState": {
+            "type": "string",
+            "minLength": 43,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "redirectUri": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "pattern": "^http://127[.]0[.]0[.]1:[0-9]{4,5}/oauth/callback$"
+          },
+          "installationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deviceLabel": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "windows",
+              "macos",
+              "linux"
+            ]
+          }
+        },
+        "required": [
+          "provider",
+          "codeChallenge",
+          "codeChallengeMethod",
+          "clientState",
+          "redirectUri",
+          "installationId",
+          "deviceLabel",
+          "platform"
+        ],
+        "additionalProperties": false
+      },
+      "AuthAttempt": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "authorizationUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "HTTPS URL on the configured Backend origin. Main validates the origin/path before opening the system browser."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "authorizationUrl",
+          "expiresAt"
+        ],
+        "additionalProperties": false
+      },
+      "CancelAttempt": {
+        "type": "object",
+        "properties": {
+          "attemptId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "codeVerifier": {
+            "type": "string",
+            "minLength": 43,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          }
+        },
+        "required": [
+          "attemptId",
+          "codeVerifier"
+        ],
+        "additionalProperties": false
+      },
+      "AuthorizationCodeGrant": {
+        "type": "object",
+        "properties": {
+          "grant_type": {
+            "type": "string",
+            "const": "authorization_code"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 43,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "code_verifier": {
+            "type": "string",
+            "minLength": 43,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "redirect_uri": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "grant_type",
+          "code",
+          "code_verifier",
+          "redirect_uri"
+        ],
+        "additionalProperties": false
+      },
+      "RefreshGrant": {
+        "type": "object",
+        "properties": {
+          "grant_type": {
+            "type": "string",
+            "const": "refresh_token"
+          },
+          "refresh_token": {
+            "type": "string",
+            "minLength": 43,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          }
+        },
+        "required": [
+          "grant_type",
+          "refresh_token"
+        ],
+        "additionalProperties": false
+      },
+      "TokenRequest": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/AuthorizationCodeGrant"
+          },
+          {
+            "$ref": "#/components/schemas/RefreshGrant"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "grant_type",
+          "mapping": {
+            "authorization_code": "#/components/schemas/AuthorizationCodeGrant",
+            "refresh_token": "#/components/schemas/RefreshGrant"
+          }
+        }
+      },
+      "Tokens": {
+        "type": "object",
+        "properties": {
+          "token_type": {
+            "type": "string",
+            "const": "Bearer"
+          },
+          "access_token": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "expires_in": {
+            "type": "integer",
+            "const": 900
+          },
+          "refresh_token": {
+            "type": "string",
+            "minLength": 43,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sessionExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "token_type",
+          "access_token",
+          "expires_in",
+          "refresh_token",
+          "sessionId",
+          "deviceId",
+          "sessionExpiresAt"
+        ],
+        "additionalProperties": false,
+        "description": "Main process only. Never return these fields through renderer IPC or URLs."
+      },
+      "VerifiedEmail": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 254,
+            "format": "email"
+          },
+          "verifiedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "address",
+          "verifiedAt"
+        ],
+        "additionalProperties": false
+      },
+      "Me": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "email": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VerifiedEmail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Provider"
+            },
+            "minItems": 1,
+            "maxItems": 2,
+            "uniqueItems": true
+          },
+          "avatarUrl": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 512,
+                "pattern": "^https://cdn\\.discordapp\\.com/"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "email",
+          "providers",
+          "avatarUrl"
+        ],
+        "additionalProperties": false
+      },
+      "Entitlements": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string",
+            "enum": [
+              "FREE",
+              "PRO"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "free",
+              "active",
+              "expiring",
+              "expired"
+            ]
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "plan",
+          "state",
+          "expiresAt",
+          "serverTime"
+        ],
+        "additionalProperties": false,
+        "description": "Effective plan is computed by Backend from unrevoked time-bounded grants. Clients cannot write this resource."
+      },
+      "Session": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deviceLabel": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "isCurrent": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revokedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "deviceId",
+          "deviceLabel",
+          "isCurrent",
+          "createdAt",
+          "expiresAt",
+          "revokedAt"
+        ],
+        "additionalProperties": false
+      },
+      "EmailChallengeRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 254,
+            "format": "email"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "additionalProperties": false
+      },
+      "EmailChallenge": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resendAfterSeconds": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 600
+          }
+        },
+        "required": [
+          "id",
+          "expiresAt",
+          "resendAfterSeconds"
+        ],
+        "additionalProperties": false
+      },
+      "EmailCode": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 6,
+            "pattern": "^[0-9]{6}$"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "additionalProperties": false
+      },
+      "SettingsWrite": {
+        "type": "object",
+        "properties": {
+          "theme": {
+            "type": "string",
+            "enum": [
+              "dark",
+              "light"
+            ]
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "th",
+              "en",
+              "es"
+            ]
+          }
+        },
+        "required": [
+          "theme",
+          "language"
+        ],
+        "additionalProperties": false,
+        "examples": [
+          {
+            "theme": "dark",
+            "language": "th"
+          }
+        ]
+      },
+      "Settings": {
+        "type": "object",
+        "properties": {
+          "theme": {
+            "type": "string",
+            "enum": [
+              "dark",
+              "light"
+            ]
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "th",
+              "en",
+              "es"
+            ]
+          },
+          "revision": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 19,
+            "pattern": "^(0|[1-9][0-9]*)$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "theme",
+          "language",
+          "revision",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "MediaBinding": {
+        "type": "object",
+        "properties": {
+          "bindingId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "pattern": "^[^/\\\\:]+$"
+          }
+        },
+        "required": [
+          "bindingId",
+          "displayName"
+        ],
+        "additionalProperties": false,
+        "description": "Device-local binding reference. No absolute path is sent to Cloud. A different device must resolve or remap it before execution."
+      },
+      "OverlayEffect": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "overlay"
+          },
+          "template": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "kind",
+          "template"
+        ],
+        "additionalProperties": false
+      },
+      "TtsEffect": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "tts"
+          },
+          "template": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "voiceId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "kind",
+          "template"
+        ],
+        "additionalProperties": false
+      },
+      "SoundEffect": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "sound"
+          },
+          "media": {
+            "$ref": "#/components/schemas/MediaBinding"
+          }
+        },
+        "required": [
+          "kind",
+          "media"
+        ],
+        "additionalProperties": false
+      },
+      "VideoEffect": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "video"
+          },
+          "media": {
+            "$ref": "#/components/schemas/MediaBinding"
+          }
+        },
+        "required": [
+          "kind",
+          "media"
+        ],
+        "additionalProperties": false
+      },
+      "KeyboardEffect": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "keyboard"
+          },
+          "keys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KeyName"
+            },
+            "minItems": 1,
+            "maxItems": 6,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "kind",
+          "keys"
+        ],
+        "additionalProperties": false
+      },
+      "WebhookEffect": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "webhook"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "pattern": "^https?://"
+          },
+          "body": {
+            "type": "object",
+            "description": "JSON object, not executable code. Backend stores but never fetches a URL when a preset is saved."
+          }
+        },
+        "required": [
+          "kind",
+          "method",
+          "url"
+        ],
+        "additionalProperties": false
+      },
+      "KeyName": {
+        "type": "string",
+        "enum": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F",
+          "G",
+          "H",
+          "I",
+          "J",
+          "K",
+          "L",
+          "M",
+          "N",
+          "O",
+          "P",
+          "Q",
+          "R",
+          "S",
+          "T",
+          "U",
+          "V",
+          "W",
+          "X",
+          "Y",
+          "Z",
+          "Digit0",
+          "Digit1",
+          "Digit2",
+          "Digit3",
+          "Digit4",
+          "Digit5",
+          "Digit6",
+          "Digit7",
+          "Digit8",
+          "Digit9",
+          "F1",
+          "F2",
+          "F3",
+          "F4",
+          "F5",
+          "F6",
+          "F7",
+          "F8",
+          "F9",
+          "F10",
+          "F11",
+          "F12",
+          "F13",
+          "F14",
+          "F15",
+          "F16",
+          "F17",
+          "F18",
+          "F19",
+          "F20",
+          "F21",
+          "F22",
+          "F23",
+          "F24",
+          "Control",
+          "Alt",
+          "Shift",
+          "Meta",
+          "Space",
+          "Enter",
+          "Escape",
+          "Tab",
+          "Backspace",
+          "Delete",
+          "ArrowUp",
+          "ArrowDown",
+          "ArrowLeft",
+          "ArrowRight",
+          "Home",
+          "End",
+          "PageUp",
+          "PageDown",
+          "Numpad0",
+          "Numpad1",
+          "Numpad2",
+          "Numpad3",
+          "Numpad4",
+          "Numpad5",
+          "Numpad6",
+          "Numpad7",
+          "Numpad8",
+          "Numpad9",
+          "NumpadAdd",
+          "NumpadSubtract",
+          "NumpadMultiply",
+          "NumpadDivide",
+          "NumpadDecimal",
+          "NumpadEnter",
+          "NumLock",
+          "NumpadEqual"
+        ]
+      },
+      "Effect": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/OverlayEffect"
+          },
+          {
+            "$ref": "#/components/schemas/TtsEffect"
+          },
+          {
+            "$ref": "#/components/schemas/SoundEffect"
+          },
+          {
+            "$ref": "#/components/schemas/VideoEffect"
+          },
+          {
+            "$ref": "#/components/schemas/KeyboardEffect"
+          },
+          {
+            "$ref": "#/components/schemas/WebhookEffect"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind",
+          "mapping": {
+            "overlay": "#/components/schemas/OverlayEffect",
+            "tts": "#/components/schemas/TtsEffect",
+            "sound": "#/components/schemas/SoundEffect",
+            "video": "#/components/schemas/VideoEffect",
+            "keyboard": "#/components/schemas/KeyboardEffect",
+            "webhook": "#/components/schemas/WebhookEffect"
+          }
+        }
+      },
+      "ActionRule": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "trigger": {
+            "type": "string",
+            "enum": [
+              "gift",
+              "like",
+              "follow",
+              "comment",
+              "share",
+              "subscribe",
+              "hotkey"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "giftId": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 80,
+            "description": "Canonical catalog ID (Rose is 5655), or '*' for all gifts. Empty for non-gift triggers."
+          },
+          "threshold": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000000
+          },
+          "minCoins": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000
+          },
+          "cooldownSeconds": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3600
+          },
+          "likeScope": {
+            "type": "string",
+            "enum": [
+              "user",
+              "room"
+            ],
+            "default": "user",
+            "description": "Like threshold scope; omitted values count separately per viewer."
+          },
+          "comboMode": {
+            "type": "string",
+            "enum": [
+              "each-event",
+              "streak-end"
+            ]
+          },
+          "commentMatch": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 160
+          },
+          "hotkey": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 80
+          },
+          "effects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Effect"
+            },
+            "minItems": 1,
+            "maxItems": 20
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "trigger",
+          "enabled",
+          "giftId",
+          "threshold",
+          "minCoins",
+          "cooldownSeconds",
+          "comboMode",
+          "commentMatch",
+          "hotkey",
+          "effects"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "trigger": {
+                  "const": "gift"
+                }
+              },
+              "required": [
+                "trigger"
+              ]
+            },
+            "then": {
+              "properties": {
+                "giftId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "trigger": {
+                  "const": "hotkey"
+                }
+              },
+              "required": [
+                "trigger"
+              ]
+            },
+            "then": {
+              "properties": {
+                "hotkey": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                }
+              }
+            }
+          }
+        ]
+      },
+      "PresetWrite": {
+        "type": "object",
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "const": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActionRule"
+            },
+            "minItems": 0,
+            "maxItems": 100
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "name",
+          "actions"
+        ],
+        "additionalProperties": false,
+        "description": "Maximum HTTP request body 256 KiB. Validate unique action IDs and semantic effect constraints in addition to this JSON Schema. No owner/plan/revision fields are writable.",
+        "examples": [
+          {
+            "schemaVersion": 1,
+            "name": "คุยกับคนดู",
+            "actions": [
+              {
+                "id": "rose-welcome",
+                "name": "ขอบคุณ Rose",
+                "trigger": "gift",
+                "enabled": true,
+                "giftId": "5655",
+                "threshold": 1,
+                "minCoins": 0,
+                "cooldownSeconds": 0,
+                "comboMode": "streak-end",
+                "commentMatch": "",
+                "hotkey": "",
+                "effects": [
+                  {
+                    "kind": "overlay",
+                    "template": "ขอบคุณ {username} สำหรับ Rose × {count}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "Preset": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "const": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActionRule"
+            },
+            "minItems": 0,
+            "maxItems": 100
+          },
+          "revision": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 19,
+            "pattern": "^[1-9][0-9]*$"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "schemaVersion",
+          "name",
+          "actions",
+          "revision",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "PresetPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Preset"
+            },
+            "minItems": 0,
+            "maxItems": 100
+          },
+          "collectionRevision": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 19,
+            "pattern": "^(0|[1-9][0-9]*)$"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "after": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "collectionRevision": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 19,
+                    "pattern": "^(0|[1-9][0-9]*)$"
+                  }
+                },
+                "required": [
+                  "after",
+                  "collectionRevision"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "collectionRevision",
+          "nextCursor"
+        ],
+        "additionalProperties": false
+      },
+      "SoundSource": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider",
+          "slug",
+          "name",
+          "sound"
+        ],
+        "properties": {
+          "provider": {
+            "const": "myinstants",
+            "type": "string"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "sound": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "pattern": "^https://www\\.myinstants\\.com/media/sounds/[^/?#]+\\.mp3$"
+          }
+        }
+      },
+      "SoundPad": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "category",
+          "bindingId",
+          "displayName",
+          "hotkey"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "reaction",
+              "transition",
+              "effect"
+            ]
+          },
+          "bindingId": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "hotkey": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "source": {
+            "$ref": "#/components/schemas/SoundSource"
+          }
+        }
+      },
+      "SoundpadData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "volume",
+          "pads"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "const": 1
+          },
+          "volume": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "pads": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/SoundPad"
+            }
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "When omitted, Soundpad is enabled for existing saved documents."
+          }
+        }
+      },
+      "SoundpadDocument": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "revision",
+          "data"
+        ],
+        "properties": {
+          "revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SoundpadData"
+          }
+        }
+      },
+      "TtsData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "voiceId",
+          "speed",
+          "volume",
+          "read",
+          "templates"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "const": 1
+          },
+          "voiceId": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "speed": {
+            "type": "number",
+            "minimum": 0.5,
+            "maximum": 2
+          },
+          "volume": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "read": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "comment",
+              "gift",
+              "follow"
+            ],
+            "properties": {
+              "comment": {
+                "type": "boolean"
+              },
+              "gift": {
+                "type": "boolean"
+              },
+              "follow": {
+                "type": "boolean"
+              }
+            }
+          },
+          "templates": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "comment",
+              "gift",
+              "follow"
+            ],
+            "properties": {
+              "comment": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "gift": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "follow": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              }
+            }
+          },
+          "filter": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "enabled",
+              "blockedWords"
+            ],
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "blockedWords": {
+                "type": "array",
+                "maxItems": 100,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 60,
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                }
+              },
+              "excludedBasicWords": {
+                "type": "array",
+                "maxItems": 36,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "fuck",
+                    "fucking",
+                    "fucked",
+                    "fucker",
+                    "motherfucker",
+                    "motherfucking",
+                    "shit",
+                    "shitty",
+                    "bullshit",
+                    "bitch",
+                    "bitches",
+                    "asshole",
+                    "arsehole",
+                    "cunt",
+                    "dick",
+                    "dickhead",
+                    "bastard",
+                    "pussy",
+                    "cock",
+                    "เหี้ย",
+                    "ไอ้เหี้ย",
+                    "อีเหี้ย",
+                    "สัส",
+                    "สัด",
+                    "ไอ้สัส",
+                    "อีสัส",
+                    "สัตว์นรก",
+                    "ควย",
+                    "ไอ้ควย",
+                    "หี",
+                    "เย็ด",
+                    "เย็ดแม่",
+                    "แม่ง",
+                    "แม่เย็ด",
+                    "หน้าหี",
+                    "ส้นตีน"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "TtsDocument": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "revision",
+          "data"
+        ],
+        "properties": {
+          "revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TtsData"
+          }
+        }
+      },
+      "OverlayWidget": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "font",
+          "theme",
+          "title",
+          "viewer",
+          "accent",
+          "background",
+          "opacity",
+          "fontSize",
+          "value",
+          "goal",
+          "seconds",
+          "options",
+          "enabled",
+          "events",
+          "duration",
+          "minCoins",
+          "metric",
+          "trigger",
+          "giftId",
+          "threshold",
+          "secondsPerEvent"
+        ],
+        "properties": {
+          "font": {
+            "type": "string",
+            "enum": [
+              "Judy",
+              "Komika Axis",
+              "Georgia",
+              "Arial Black",
+              "Tahoma",
+              "monospace"
+            ]
+          },
+          "theme": {
+            "type": "string",
+            "enum": [
+              "plain-white",
+              "plain-black",
+              "crystal-reverie",
+              "mochi-pals",
+              "orbital-bloom",
+              "enchanted-grove",
+              "pearl-tide",
+              "cloud-palace",
+              "sakura-moon",
+              "midnight-grimoire",
+              "sugar-garden",
+              "aurora-prism"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "pattern": "^(?=.*\\S)[^\\x00-\\x1f\\x7f-\\x9f\\u061c\\u200e\\u200f\\u202a-\\u202e\\u2066-\\u2069]+$"
+          },
+          "viewer": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "pattern": "^(?=.*\\S)[^\\x00-\\x1f\\x7f-\\x9f\\u061c\\u200e\\u200f\\u202a-\\u202e\\u2066-\\u2069]+$"
+          },
+          "accent": {
+            "type": "string",
+            "pattern": "^#[a-fA-F0-9]{6}$"
+          },
+          "background": {
+            "type": "string",
+            "pattern": "^#[a-fA-F0-9]{6}$"
+          },
+          "opacity": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "fontSize": {
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 40
+          },
+          "value": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 99999
+          },
+          "goal": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 99999
+          },
+          "seconds": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 86400
+          },
+          "options": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 12,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40,
+              "pattern": "^(?=.*\\S)[^\\x00-\\x1f\\x7f-\\x9f\\u061c\\u200e\\u200f\\u202a-\\u202e\\u2066-\\u2069]+$"
+            }
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "events": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 6,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": [
+                "gift",
+                "like",
+                "follow",
+                "comment",
+                "share",
+                "subscribe"
+              ]
+            }
+          },
+          "duration": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          },
+          "minCoins": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000
+          },
+          "metric": {
+            "type": "string",
+            "enum": [
+              "coins",
+              "gifts",
+              "likes",
+              "follows"
+            ]
+          },
+          "trigger": {
+            "type": "string",
+            "enum": [
+              "gift",
+              "like",
+              "follow",
+              "comment",
+              "share",
+              "subscribe"
+            ]
+          },
+          "giftId": {
+            "type": "string",
+            "pattern": "^(?:\\*|[1-9][0-9]{0,19})$"
+          },
+          "threshold": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000000
+          },
+          "secondsPerEvent": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3600
+          },
+          "showRanking": {
+            "type": "boolean"
+          },
+          "showTotal": {
+            "type": "boolean"
+          },
+          "showRecentGift": {
+            "type": "boolean"
+          }
+        }
+      },
+      "OverlayData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "widgets"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "const": 1
+          },
+          "widgets": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "alert",
+              "big-gift",
+              "top-likers",
+              "goal",
+              "leaderboard",
+              "timer",
+              "gift-jar",
+              "spin"
+            ],
+            "properties": {
+              "alert": {
+                "$ref": "#/components/schemas/OverlayWidget"
+              },
+              "big-gift": {
+                "$ref": "#/components/schemas/OverlayWidget"
+              },
+              "top-likers": {
+                "$ref": "#/components/schemas/OverlayWidget"
+              },
+              "goal": {
+                "$ref": "#/components/schemas/OverlayWidget"
+              },
+              "leaderboard": {
+                "$ref": "#/components/schemas/OverlayWidget"
+              },
+              "timer": {
+                "$ref": "#/components/schemas/OverlayWidget"
+              },
+              "gift-jar": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/OverlayWidget"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "theme": {
+                        "type": "string",
+                        "enum": [
+                          "plain-white",
+                          "plain-black"
+                        ]
+                      }
+                    }
+                  }
+                ]
+              },
+              "spin": {
+                "$ref": "#/components/schemas/OverlayWidget"
+              },
+              "video": {
+                "$ref": "#/components/schemas/OverlayWidget"
+              }
+            }
+          }
+        }
+      },
+      "OverlayDocument": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "revision",
+          "data"
+        ],
+        "properties": {
+          "revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OverlayData"
+          }
+        }
+      }
+    }
+  }
+}

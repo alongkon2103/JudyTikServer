@@ -1,0 +1,97 @@
+{
+  "count": 0,
+  "goal": 10,
+  "step": 1,
+  "allowNegative": true,
+  "slots": [
+    2,
+    -1,
+    4,
+    -1,
+    1,
+    -2
+  ],
+  "rules": [],
+  "overlay": {
+    "theme": "judy",
+    "enabled": true,
+    "label": "WIN",
+    "showLabel": true,
+    "showGoal": true,
+    "showProgress": true,
+    "layout": "horizontal",
+    "font": "Judy",
+    "size": 80,
+    "bold": true,
+    "scale": 100,
+    "colorWin": "#F58CBC",
+    "colorGoal": "#F6F2F8",
+    "colorLabel": "#CDBCD2",
+    "colorNegative": "#FFB4C4",
+    "outline": false,
+    "outlineColor": "#130A1F",
+    "outlineSize": 2,
+    "background": "#211631",
+    "background2": "#43203C",
+    "opacity": 100,
+    "gradient": false,
+    "radius": 24,
+    "motion": "bounce",
+    "effects": {
+      "floatDelta": true,
+      "particles": true,
+      "pulse": false,
+      "goalCelebration": true,
+      "ambientGlow": false,
+      "lightSweep": false,
+      "orbitStars": false,
+      "trail": false,
+      "milestone": true
+    },
+    "milestoneEvery": 10,
+    "sound": false,
+    "volume": 35,
+    "keys": [
+      {
+        "name": "เพิ่ม WIN",
+        "value": "CommandOrControl+Shift+1",
+        "delta": 1
+      },
+      {
+        "name": "ลด WIN",
+        "value": "CommandOrControl+Shift+2",
+        "delta": -1
+      },
+      {
+        "name": "รีเซ็ต",
+        "value": "CommandOrControl+Shift+0",
+        "delta": 0
+      }
+    ]
+  },
+  "spin": {
+    "theme": "judy",
+    "enabled": true,
+    "label": "WIN",
+    "showLabel": true,
+    "showResult": true,
+    "showPointer": true,
+    "positive": "#99E2C0",
+    "negative": "#FFB4C4",
+    "text": "#F6F2F8",
+    "pointer": "#F58CBC",
+    "tile": "#30243C",
+    "border": "#887294",
+    "background": "#211631",
+    "background2": "#43203C",
+    "gradient": false,
+    "opacity": 100,
+    "radius": 16,
+    "width": 96,
+    "height": 80,
+    "gap": 12,
+    "fontSize": 28,
+    "font": "Judy",
+    "duration": 2
+  }
+}

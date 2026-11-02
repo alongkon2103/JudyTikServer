@@ -1,0 +1,11 @@
+{
+  "name": "judytik-server-repository",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "test:deploy": "node --test deploy/test/*.test.mjs"
+  }
+}

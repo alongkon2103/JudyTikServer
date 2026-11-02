@@ -1,0 +1,397 @@
+// Backend models. Versioned migrations include reviewed SQL constraints/triggers/RLS.
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["judytik"]
+}
+
+model User {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  displayName     String   @map("display_name") @db.VarChar(80)
+  avatarUrl       String?  @map("avatar_url") @db.VarChar(512)
+  presetsRevision BigInt   @default(0) @map("presets_revision")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  disabledAt      DateTime? @map("disabled_at") @db.Timestamptz
+  identities      Identity[]
+  email           UserEmail?
+  devices         Device[]
+  sessions        Session[]
+  authAttempts    DesktopAuthAttempt[]
+  emailChallenges EmailChallenge[]
+  entitlements    EntitlementGrant[]
+  presets         ActionPreset[]
+  settings        AccountSettings?
+  winWorkspace    WinWorkspace?
+  soundpadWorkspace SoundpadWorkspace?
+  ttsWorkspace    TtsWorkspace?
+  overlaysWorkspace OverlaysWorkspace?
+  liveHistory     LiveHistory[]
+  auditEvents     AuditEvent[]
+
+  @@map("users")
+  @@schema("judytik")
+}
+
+model Identity {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  provider        String
+  providerSubject String   @map("provider_subject") @db.VarChar(255)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([provider, providerSubject])
+  @@unique([userId, provider])
+  @@map("identities")
+  @@schema("judytik")
+}
+
+model UserEmail {
+  userId     String   @id @map("user_id") @db.Uuid
+  emailKey   String   @unique @map("email_key") @db.VarChar(254)
+  verifiedAt DateTime @map("verified_at") @db.Timestamptz
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("user_emails")
+  @@schema("judytik")
+}
+
+model Device {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  installationId String   @map("installation_id") @db.Uuid
+  label          String   @db.VarChar(80)
+  platform       String
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  lastSeenAt     DateTime @default(now()) @map("last_seen_at") @db.Timestamptz
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sessions       Session[]
+  liveHistory    LiveHistory[]
+
+  @@unique([userId, id])
+  @@unique([userId, installationId])
+  @@map("devices")
+  @@schema("judytik")
+}
+
+model Session {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  deviceId     String   @map("device_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  expiresAt    DateTime @map("expires_at") @db.Timestamptz
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  device       Device   @relation(fields: [userId, deviceId], references: [userId, id], onDelete: Cascade, onUpdate: NoAction)
+  refreshTokens RefreshToken[]
+
+  @@index([userId, expiresAt])
+  @@map("sessions")
+  @@schema("judytik")
+}
+
+model RefreshToken {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId    String   @map("session_id") @db.Uuid
+  tokenHash    Bytes    @unique @map("token_hash")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  expiresAt    DateTime @map("expires_at") @db.Timestamptz
+  usedAt       DateTime? @map("used_at") @db.Timestamptz
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz
+  replacedBy   String?  @map("replaced_by") @db.Uuid
+  session      Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  replacement  RefreshToken?  @relation("Rotation", fields: [sessionId, replacedBy], references: [sessionId, id], onDelete: NoAction, onUpdate: NoAction)
+  predecessors RefreshToken[] @relation("Rotation")
+
+  @@unique([sessionId, id])
+  @@unique([sessionId, replacedBy])
+  @@index([sessionId])
+  @@map("refresh_tokens")
+  @@schema("judytik")
+}
+
+model DesktopAuthAttempt {
+  id                      String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider                String
+  installationId          String   @map("installation_id") @db.Uuid
+  deviceLabel             String   @map("device_label") @db.VarChar(80)
+  platform                String
+  codeChallenge           String   @map("code_challenge") @db.VarChar(43)
+  clientState             String   @map("client_state") @db.VarChar(128)
+  redirectUri             String   @map("redirect_uri") @db.VarChar(256)
+  oauthStateHash          Bytes?   @unique @map("oauth_state_hash")
+  oauthNonceHash          Bytes?   @map("oauth_nonce_hash")
+  providerSecretCiphertext Bytes?  @map("provider_secret_ciphertext")
+  providerStateConsumedAt DateTime? @map("provider_state_consumed_at") @db.Timestamptz
+  userId                  String?  @map("user_id") @db.Uuid
+  grantCodeHash           Bytes?   @unique @map("grant_code_hash")
+  grantExpiresAt          DateTime? @map("grant_expires_at") @db.Timestamptz
+  createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz
+  expiresAt               DateTime @map("expires_at") @db.Timestamptz
+  consumedAt              DateTime? @map("consumed_at") @db.Timestamptz
+  cancelledAt             DateTime? @map("cancelled_at") @db.Timestamptz
+  user                    User?    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([expiresAt])
+  @@map("desktop_auth_attempts")
+  @@schema("judytik")
+}
+
+model EmailChallenge {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  emailKey      String   @map("email_key") @db.VarChar(254)
+  codeHmac      Bytes    @map("code_hmac")
+  requestIpHash Bytes?   @map("request_ip_hash")
+  attempts      Int      @default(0) @db.SmallInt
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  expiresAt     DateTime @map("expires_at") @db.Timestamptz
+  consumedAt    DateTime? @map("consumed_at") @db.Timestamptz
+  invalidatedAt DateTime? @map("invalidated_at") @db.Timestamptz
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId, createdAt])
+  @@index([requestIpHash, createdAt])
+
+  // One active challenge per user is maintained by the reviewed SQL extension index.
+  @@map("email_challenges")
+  @@schema("judytik")
+}
+
+model EntitlementGrant {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  plan      String
+  startsAt  DateTime @map("starts_at") @db.Timestamptz
+  endsAt    DateTime @map("ends_at") @db.Timestamptz
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId, endsAt])
+  @@map("entitlement_grants")
+  @@schema("judytik")
+}
+
+model ActionPreset {
+  id            String   @id @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  name          String   @db.VarChar(80)
+  schemaVersion Int      @default(1) @map("schema_version") @db.SmallInt
+  actions       Json     @db.JsonB
+  revision      BigInt   @default(1)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @default(now()) @map("updated_at") @db.Timestamptz
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId, id])
+  @@map("action_presets")
+  @@schema("judytik")
+}
+
+model AccountSettings {
+  userId    String   @id @map("user_id") @db.Uuid
+  theme     String   @default("dark")
+  language  String   @default("th")
+  revision  BigInt   @default(0)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("account_settings")
+  @@schema("judytik")
+}
+
+model AuditEvent {
+  id               BigInt   @id @default(autoincrement())
+  actorUserId      String?  @map("actor_user_id") @db.Uuid
+  sessionId        String?  @map("session_id") @db.Uuid
+  eventName        String   @map("event_name") @db.VarChar(80)
+  resourceId       String?  @map("resource_id") @db.Uuid
+  resourceKey      String?  @map("resource_key") @db.VarChar(80)
+  resourceRevision BigInt?  @map("resource_revision")
+  requestId        String   @map("request_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+  actor            User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([actorUserId, createdAt(sort: Desc)])
+  @@map("audit_events")
+  @@schema("judytik")
+}
+
+model Gift {
+ id            String   @id @db.VarChar(20)
+ nameOverride  String?  @map("name_override") @db.VarChar(255)
+ imageOverride String?  @map("image_override")
+ aliases       String[] @default([])
+ enabled       Boolean  @default(true)
+ searchText    String   @map("search_text")
+ revision      BigInt   @default(1)
+ createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+ updatedAt     DateTime @default(now()) @map("updated_at") @db.Timestamptz
+ regions       GiftRegion[]
+
+ @@map("gifts")
+ @@schema("judytik")
+}
+
+model GiftRegion {
+ giftId           String   @map("gift_id") @db.VarChar(20)
+ region           String   @db.VarChar(2)
+ providerName     String   @map("provider_name") @db.VarChar(255)
+ coins            Int
+ imageUrl         String   @map("image_url")
+ description      String   @default("")
+ giftType         Int      @map("gift_type")
+ combo            Boolean
+ sourceObservedAt DateTime @map("source_observed_at") @db.Timestamptz
+ gift             Gift     @relation(fields:[giftId],references:[id],onDelete:Cascade,onUpdate:NoAction)
+
+ @@id([giftId,region])
+ @@index([region,coins,giftId])
+ @@map("gift_regions")
+ @@schema("judytik")
+}
+
+model GiftCatalogState {
+ id           Int       @id @default(1)
+ revision     BigInt    @default(0)
+ lastSyncedAt DateTime? @map("last_synced_at") @db.Timestamptz
+
+ @@map("gift_catalog_state")
+ @@schema("judytik")
+}
+
+model WinWorkspace {
+  userId String @id @map("user_id") @db.Uuid
+  data Json @db.JsonB
+  revision BigInt @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade,onUpdate:NoAction)
+  @@map("win_workspaces")
+  @@schema("judytik")
+}
+
+model SoundpadWorkspace {
+  userId String @id @map("user_id") @db.Uuid
+  data Json @db.JsonB
+  revision BigInt @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade,onUpdate:NoAction)
+  @@map("soundpad_workspaces")
+  @@schema("judytik")
+}
+
+model TtsWorkspace {
+  userId String @id @map("user_id") @db.Uuid
+  data Json @db.JsonB
+  revision BigInt @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade,onUpdate:NoAction)
+  @@map("tts_workspaces")
+  @@schema("judytik")
+}
+
+model OverlaysWorkspace {
+  userId String @id @map("user_id") @db.Uuid
+  data Json @db.JsonB
+  revision BigInt @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade,onUpdate:NoAction)
+  @@map("overlays_workspaces")
+  @@schema("judytik")
+}
+
+model GameCategory {
+ id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+ slug String @unique @db.VarChar(80)
+ name String @db.VarChar(80)
+ description String @default("")
+ sortOrder Int @default(0) @map("sort_order")
+ status String @default("active")
+ revision BigInt @default(1)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+ updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+ games Game[]
+ @@map("game_categories")
+ @@schema("judytik")
+}
+model Game {
+ id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+ slug String @unique @db.VarChar(80)
+ name String @db.VarChar(80)
+ description String @default("")
+ categoryId String? @map("category_id") @db.Uuid
+ category GameCategory? @relation(fields:[categoryId],references:[id],onDelete:Restrict,onUpdate:NoAction)
+ platform String @default("pc") @db.VarChar(80)
+ coverUrl String? @map("cover_url")
+ url String?
+ status String @default("draft")
+ sortOrder Int @default(0) @map("sort_order")
+ metadata Json @default("{}") @db.JsonB
+ revision BigInt @default(1)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+ updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+ presets GamePreset[]
+ @@index([status,sortOrder,id])
+ @@index([categoryId,status])
+ @@map("games")
+ @@schema("judytik")
+}
+model GamePreset {
+ id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+ gameId String @map("game_id") @db.Uuid
+ game Game @relation(fields:[gameId],references:[id],onDelete:Restrict,onUpdate:NoAction)
+ slug String @db.VarChar(80)
+ name String @db.VarChar(80)
+ description String @default("")
+ format String
+ payload Json @db.JsonB
+ isDefault Boolean @default(false) @map("is_default")
+ status String @default("draft")
+ version Int @default(1)
+ revision BigInt @default(1)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+ updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+ versions GamePresetVersion[]
+ @@unique([gameId,slug])
+ @@index([gameId,status])
+ @@map("game_presets")
+ @@schema("judytik")
+}
+model GamePresetVersion {
+ presetId String @map("preset_id") @db.Uuid
+ version Int
+ preset GamePreset @relation(fields:[presetId],references:[id],onDelete:Restrict,onUpdate:NoAction)
+ snapshot Json @db.JsonB
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+ @@id([presetId,version])
+ @@map("game_preset_versions")
+ @@schema("judytik")
+}
+
+model LiveHistory {
+  userId String @map("user_id") @db.Uuid
+  id String @db.Uuid
+  creatorDeviceId String @map("creator_device_id") @db.Uuid
+  startedAt DateTime @map("started_at") @db.Timestamptz
+  data Json @db.JsonB
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade,onUpdate:NoAction)
+  creatorDevice Device @relation(fields:[userId,creatorDeviceId],references:[userId,id],onDelete:Cascade,onUpdate:NoAction)
+  @@id([userId,id])
+  @@index([userId,startedAt(sort:Desc),id(sort:Desc)],map:"live_history_account_started")
+  @@map("live_history")
+  @@schema("judytik")
+}

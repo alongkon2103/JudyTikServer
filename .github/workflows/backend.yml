@@ -1,0 +1,41 @@
+name: Backend verification
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      DIRECT_URL: postgresql://build:unused@127.0.0.1:5432/judytik
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm --prefix server ci --include=dev
+      - run: npm --prefix server run prisma:generate
+      - run: npm --prefix server run typecheck
+      - run: npm --prefix server run build
+      - run: npm --prefix server test
+      - run: npm run test:deploy
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $errorsFound = @()
+          Get-ChildItem deploy/windows/*.ps1 | ForEach-Object {
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$parseErrors) | Out-Null
+            $errorsFound += $parseErrors
+          }
+          if ($errorsFound.Count) { $errorsFound | Format-List; throw 'PowerShell parse errors' }
+          [xml]$service = Get-Content deploy/windows/JudyTikService.xml -Raw
+          if ($service.service.serviceaccount.user -ne 'LocalService') { throw 'Unexpected service identity' }
+          & ./deploy/test/windows-acl.test.ps1
