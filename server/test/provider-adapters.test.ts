@@ -34,6 +34,7 @@ async function fixture(mode = 'valid') {
     name: 'Creator',
     email: 'creator@example.invalid',
     email_verified: true,
+    ...(mode==='google-avatar'?{picture:'https://lh3.googleusercontent.com/a/profile=s96-c'}:mode==='bad-google-avatar'?{picture:'https://evil.invalid/photo.png'}:{}),
   }
   const token = await new SignJWT(claims)
     .setProtectedHeader({ alg: 'RS256', kid: 'fixture' })
@@ -180,3 +181,5 @@ test('provider adapter fails closed without registrations', async () => {
 })
 
 for (const mode of ['avatar','default-avatar']) test('Discord supplies a safe CDN '+mode,async()=>{const {client}=await fixture(mode),info={...input,redirectUri:'http://127.0.0.1:4300/v1/auth/oauth/discord/callback'};const profile=await client.exchange('discord',new URL(info.redirectUri+'?code=fixture&state='+input.state+'&iss=https%3A%2F%2Fdiscord.com'),info);assert.equal((profile as any).avatarUrl,mode==='avatar'?'https://cdn.discordapp.com/avatars/123456789/a_'+ 'b'.repeat(32)+'.png?size=128':'https://cdn.discordapp.com/embed/avatars/5.png')})
+
+for(const mode of ['google-avatar','bad-google-avatar'])test('Google validated identity handles '+mode,async()=>{const {client}=await fixture(mode);const profile=await client.exchange('google',new URL(input.redirectUri+'?code=fixture&state='+input.state),input);assert.equal(profile.avatarUrl,mode==='google-avatar'?'https://lh3.googleusercontent.com/a/profile=s96-c':undefined)})

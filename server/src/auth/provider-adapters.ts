@@ -22,6 +22,7 @@ const googleProfile = z.object({
   name: z.string().max(512).optional(),
   email: z.email().max(254).optional(),
   email_verified: z.boolean().optional(),
+  picture: z.string().max(2048).optional(),
 })
 const discordProfile = z.object({
   id: z.string().regex(/^[0-9]{1,255}$/),
@@ -128,6 +129,7 @@ export class OAuthProviders {
           displayName: displayName(profile.name),
           email: profile.email?.trim().toLowerCase(),
           emailVerified: profile.email_verified === true,
+          avatarUrl: safeGoogleAvatarURL(profile.picture),
         }
       }
       const response = await this.request(
@@ -215,3 +217,5 @@ export class OAuthProviders {
     }
   }
 }
+
+function safeGoogleAvatarURL(value?:string){if(!value)return;try{const url=new URL(value);return url.protocol==='https:'&&/^lh[0-9]+\.googleusercontent\.com$/.test(url.hostname)&&!url.username&&!url.password&&!url.port&&/^\/(a|a-)\//.test(url.pathname)?url.href:undefined}catch{return}}
