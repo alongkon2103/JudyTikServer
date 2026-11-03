@@ -1957,7 +1957,7 @@
               {
                 "type": "string",
                 "maxLength": 512,
-                "pattern": "^https://cdn\\.discordapp\\.com/"
+                "pattern": "^https://(cdn\\.discordapp\\.com/(avatars/[0-9]+/(a_)?[a-f0-9]{32}\\.png\\?size=128|embed/avatars/[0-5]\\.png)|lh[0-9]+\\.googleusercontent\\.com/(a|a-)/[^\\s]+)$"
               },
               {
                 "type": "null"
