@@ -10,7 +10,7 @@ if (!process.argv.includes('--live-only')) {
     import.meta.url,
   )
   const schema = await readFile(source, 'utf8')
-  const ast = await openapiTS(source)
+  const ast = await openapiTS(source, { defaultNonNullable: false })
   await mkdir(new URL('../contracts/', import.meta.url), { recursive: true })
   await writeFile(
     new URL('../contracts/cloud-v1.openapi.json', import.meta.url),

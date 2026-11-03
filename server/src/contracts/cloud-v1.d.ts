@@ -601,16 +601,21 @@ export interface components {
             id: string;
             name: string;
             /** @enum {string} */
-            trigger: "gift" | "like" | "follow" | "comment" | "share" | "subscribe" | "hotkey";
+            trigger: "gift" | "like" | "follow" | "comment" | "share" | "subscribe" | "fanclub" | "hotkey";
             enabled: boolean;
             /** @description Canonical catalog ID (Rose is 5655), or '*' for all gifts. Empty for non-gift triggers. */
             giftId: string;
+            /** @description Gift/like event count; for fanclub, minimum TikTok fan-club level (inclusive), evaluated per event without accumulation. */
             threshold: number;
             minCoins: number;
             cooldownSeconds: number;
-            /** @enum {string} */
-            /** Like threshold scope; omitted values count separately per viewer. */
+            /**
+             * @description Like threshold scope; omitted values count separately per viewer.
+             * @default user
+             * @enum {string}
+             */
             likeScope?: "user" | "room";
+            /** @enum {string} */
             comboMode: "each-event" | "streak-end";
             commentMatch: string;
             hotkey: string;
@@ -691,18 +696,18 @@ export interface components {
             source?: components["schemas"]["SoundSource"];
         };
         SoundpadData: {
-            enabled?: boolean;
             /** @constant */
             version: 1;
             volume: number;
             pads: components["schemas"]["SoundPad"][];
+            /** @description When omitted, Soundpad is enabled for existing saved documents. */
+            enabled?: boolean;
         };
         SoundpadDocument: {
             revision: string;
             data: components["schemas"]["SoundpadData"];
         };
         TtsData: {
-            filter?: { enabled: boolean; blockedWords: string[]; excludedBasicWords?: ("fuck" | "fucking" | "fucked" | "fucker" | "motherfucker" | "motherfucking" | "shit" | "shitty" | "bullshit" | "bitch" | "bitches" | "asshole" | "arsehole" | "cunt" | "dick" | "dickhead" | "bastard" | "pussy" | "cock" | "เหี้ย" | "ไอ้เหี้ย" | "อีเหี้ย" | "สัส" | "สัด" | "ไอ้สัส" | "อีสัส" | "สัตว์นรก" | "ควย" | "ไอ้ควย" | "หี" | "เย็ด" | "เย็ดแม่" | "แม่ง" | "แม่เย็ด" | "หน้าหี" | "ส้นตีน")[] };
             /** @constant */
             version: 1;
             voiceId: string;
@@ -717,6 +722,11 @@ export interface components {
                 comment: string;
                 gift: string;
                 follow: string;
+            };
+            filter?: {
+                enabled: boolean;
+                blockedWords: string[];
+                excludedBasicWords?: ("fuck" | "fucking" | "fucked" | "fucker" | "motherfucker" | "motherfucking" | "shit" | "shitty" | "bullshit" | "bitch" | "bitches" | "asshole" | "arsehole" | "cunt" | "dick" | "dickhead" | "bastard" | "pussy" | "cock" | "เหี้ย" | "ไอ้เหี้ย" | "อีเหี้ย" | "สัส" | "สัด" | "ไอ้สัส" | "อีสัส" | "สัตว์นรก" | "ควย" | "ไอ้ควย" | "หี" | "เย็ด" | "เย็ดแม่" | "แม่ง" | "แม่เย็ด" | "หน้าหี" | "ส้นตีน")[];
             };
         };
         TtsDocument: {
@@ -748,10 +758,10 @@ export interface components {
             trigger: "gift" | "like" | "follow" | "comment" | "share" | "subscribe";
             giftId: string;
             threshold: number;
-            secondsPerEvent: number;
             showRanking?: boolean;
             showTotal?: boolean;
             showRecentGift?: boolean;
+            secondsPerEvent: number;
         };
         OverlayData: {
             /** @constant */

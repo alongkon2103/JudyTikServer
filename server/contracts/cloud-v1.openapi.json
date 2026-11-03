@@ -2500,6 +2500,7 @@
               "comment",
               "share",
               "subscribe",
+              "fanclub",
               "hotkey"
             ]
           },
@@ -2515,7 +2516,8 @@
           "threshold": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 1000000
+            "maximum": 1000000,
+            "description": "Gift/like event count; for fanclub, minimum TikTok fan-club level (inclusive), evaluated per event without accumulation."
           },
           "minCoins": {
             "type": "integer",
@@ -3239,11 +3241,6 @@
             "minimum": 1,
             "maximum": 1000000
           },
-          "secondsPerEvent": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 3600
-          },
           "showRanking": {
             "type": "boolean"
           },
@@ -3252,6 +3249,11 @@
           },
           "showRecentGift": {
             "type": "boolean"
+          },
+          "secondsPerEvent": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3600
           }
         }
       },
