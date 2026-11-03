@@ -290,3 +290,16 @@ test('email unconfigured transport fails closed without creating a pretend verif
 })
 
 test('Discord profile avatar persists and refreshes on later sign-in for the same identity',async()=>{const subject=randomUUID(),avatarUrl='https://cdn.discordapp.com/avatars/123/'+'b'.repeat(32)+'.png?size=128';const first=await h.signIn({provider:'discord',subject,avatarUrl});assert.equal((await accounts.me(first.session) as any).avatarUrl,avatarUrl);const nextUrl='https://cdn.discordapp.com/avatars/123/'+'c'.repeat(32)+'.png?size=128';const again=await h.signIn({provider:'discord',subject,avatarUrl:nextUrl});assert.equal(again.session.userId,first.session.userId);assert.equal((await accounts.me(first.session) as any).avatarUrl,nextUrl)})
+
+test('Google avatar persists on first sign-in and updates for an existing identity without changing account',async()=>{
+ const subject=randomUUID(),avatarUrl='https://lh3.googleusercontent.com/a/profile=s96-c'
+ const first=await h.signIn({provider:'google',subject})
+ assert.equal((await accounts.me(first.session)).avatarUrl,null)
+ const again=await h.signIn({provider:'google',subject,avatarUrl})
+ assert.equal(again.session.userId,first.session.userId)
+ assert.equal((await accounts.me(again.session)).avatarUrl,avatarUrl)
+ const updated='https://lh5.googleusercontent.com/a-/another=s96-c'
+ await h.signIn({provider:'google',subject,avatarUrl:updated})
+ assert.equal((await accounts.me(first.session)).avatarUrl,updated)
+ for(const bad of ['https://evil.invalid/a/x','http://lh3.googleusercontent.com/a/x','https://lh3.googleusercontent.com.evil.invalid/a/x','https://user:secret@lh3.googleusercontent.com/a/x'])await assert.rejects(()=>owner.query('UPDATE judytik.users SET avatar_url=$1 WHERE id=$2',[bad,first.session.userId]),/trusted_avatar_origin/)
+})

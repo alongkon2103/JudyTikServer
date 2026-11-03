@@ -218,4 +218,4 @@ export class OAuthProviders {
   }
 }
 
-function safeGoogleAvatarURL(value?:string){if(!value)return;try{const url=new URL(value);return url.protocol==='https:'&&/^lh[0-9]+\.googleusercontent\.com$/.test(url.hostname)&&!url.username&&!url.password&&!url.port&&/^\/(a|a-)\//.test(url.pathname)?url.href:undefined}catch{return}}
+function safeGoogleAvatarURL(value?:string){if(!value||value.length>512)return;try{const url=new URL(value);return url.href.length<=512&&url.protocol==='https:'&&/^lh[0-9]+\.googleusercontent\.com$/.test(url.hostname)&&!url.username&&!url.password&&!url.port&&/^\/(a|a-)\//.test(url.pathname)?url.href:undefined}catch{return}}
