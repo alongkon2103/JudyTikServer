@@ -1,4 +1,5 @@
 import {addGamesOpenApi} from '../src/games/openapi.js'
+import {addEntitlementsOpenApi} from '../src/entitlements/openapi.js'
 import { z } from 'zod'
 import { readFile, writeFile } from 'node:fs/promises'
 import {
@@ -195,6 +196,7 @@ const doc = {
   },
 }
 addGamesOpenApi(doc)
+addEntitlementsOpenApi(doc)
 await writeFile(
   new URL('../openapi.json', import.meta.url),
   JSON.stringify(doc, null, 2) + '\n',

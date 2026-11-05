@@ -29,6 +29,8 @@ import { AccountsService } from './accounts/accounts.service.js'
 import { EmailService } from './accounts/email.service.js'
 import { VerificationMailer } from './accounts/mailer.js'
 import { EntitlementsService } from './entitlements/entitlements.service.js'
+import {EntitlementsAdminService} from './entitlements/admin.service.js'
+import {EntitlementsAdminController} from './entitlements/admin.controller.js'
 import {PresetsService} from './presets/service.js'
 import {PresetsController} from './presets/controller.js'
 import {SettingsService} from './settings/service.js'
@@ -63,6 +65,7 @@ export class AppModule {
     return {
       module: AppModule,
       controllers: [
+        EntitlementsAdminController,
         HealthController, HistoryController,
         GamesController, GameCategoriesController, AdminGameCategoriesController, AdminGamesController,
         GiftsController,
@@ -72,6 +75,7 @@ export class AppModule {
         PresetsController, SettingsController, LiveController, WinController, SoundpadController, TtsController, OverlaysController,
       ],
       providers: [
+        EntitlementsAdminService,
         { provide: CONFIG, useValue: config },
         PrismaService,
         { provide: EulerGiftClient, useValue: euler },

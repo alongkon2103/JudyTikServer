@@ -24,3 +24,7 @@ GRANT SELECT,INSERT ON judytik.game_preset_versions TO :"runtime_role";
 
 -- History cannot be deleted, reassigned, or written from a different desktop device.
 GRANT SELECT,INSERT,UPDATE ON judytik.live_history TO :"runtime_role";
+
+-- Entitlement history is append-only to the runtime role. Mutations require the admin service key.
+GRANT INSERT,UPDATE ON judytik.entitlement_grants TO :"runtime_role";
+GRANT SELECT,INSERT ON judytik.entitlement_operations TO :"runtime_role";

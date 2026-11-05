@@ -17,6 +17,9 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     this.client = new PrismaClient({
       adapter: new PrismaPg({
         connectionString: config.databaseUrl,
+        // Keep timestamp encoding/decoding consistent even when Windows/Postgres
+        // defaults to a local zone; all API expiry timestamps are UTC instants.
+        options: '-c timezone=UTC',
         max: 10,
         connectionTimeoutMillis: 10000,
       }),

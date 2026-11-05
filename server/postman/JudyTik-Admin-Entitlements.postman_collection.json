@@ -1,0 +1,449 @@
+{
+  "info": {
+    "_postman_id": "b833b74a-0cb3-45fd-9308-7e93a7c3601c",
+    "name": "JudyTik - Admin Entitlements",
+    "description": "Admin API using the existing ADMIN_API_KEY. Import the environment, set adminApiKey and email, then use request 01 to populate userId. POST requests change actual access; use a test account first. Each normal mutation creates a fresh Idempotency-Key. Request 04 replays the exact previous add safely. The user must already have an account; email lookup requires a verified email. A day is exactly 24 hours. Keys belong only in trusted admin/server tools. No Desktop page restrictions are changed by this API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{adminApiKey}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "00 - Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/health",
+        "description": "00 - Health",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "01 - Find account by verified email",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/admin/entitlements?email={{lookupEmail}}",
+        "description": "01 - Find account by verified email"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.variables.set('lookupEmail',encodeURIComponent((pm.environment.get('email')||'').trim()));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "const r=pm.response.json();pm.environment.set('userId',r.userId);pm.test('Account found',()=>pm.expect(r.userId).to.be.a('string'));pm.test('FREE or PRO',()=>pm.expect(r.entitlement.plan).to.be.oneOf(['FREE','PRO']));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "02 - Get current rights by userId",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/admin/entitlements?userId={{userId}}",
+        "description": "02 - Get current rights by userId"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "pm.test('Expiry field exists',()=>pm.expect(pm.response.json().entitlement).to.have.property('expiresAt'));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "03 - Add PRO days",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{idempotencyKey}}"
+          }
+        ],
+        "url": "{{baseUrl}}/admin/entitlements/adjust",
+        "description": "03 - Add PRO days",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"source\": \"admin-postman\",\n  \"reason\": \"{{reason}}\",\n  \"days\": {{addDays}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const key=pm.variables.replaceIn('{{$guid}}');",
+              "pm.variables.set('idempotencyKey',key);",
+              "pm.environment.set('lastAddKey',key);",
+              "pm.environment.set('lastAddBody',pm.variables.replaceIn(pm.request.body.raw));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "const r=pm.response.json(); pm.test('Mutation recorded',()=>pm.expect(r.operation.id).to.be.a('string')); pm.test('Fresh operation',()=>pm.expect(r.replayed).to.eql(false));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "04 - Retry last add (must NOT add twice)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{idempotencyKey}}"
+          }
+        ],
+        "url": "{{baseUrl}}/admin/entitlements/adjust",
+        "description": "04 - Retry last add (must NOT add twice)",
+        "body": {
+          "mode": "raw",
+          "raw": "{{retryBody}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const key=pm.environment.get('lastAddKey'),body=pm.environment.get('lastAddBody');",
+              "if(!key||!body)throw new Error('Send request 03 first');",
+              "pm.variables.set('idempotencyKey',key);pm.variables.set('retryBody',body);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "pm.test('Original operation replayed',()=>pm.expect(pm.response.json().replayed).to.eql(true));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "05 - Subtract PRO days",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{idempotencyKey}}"
+          }
+        ],
+        "url": "{{baseUrl}}/admin/entitlements/adjust",
+        "description": "05 - Subtract PRO days",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"source\": \"admin-postman\",\n  \"reason\": \"{{reason}}\",\n  \"days\": {{subtractDays}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const key=pm.variables.replaceIn('{{$guid}}');",
+              "pm.variables.set('idempotencyKey',key);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "const r=pm.response.json(); pm.test('Mutation recorded',()=>pm.expect(r.operation.id).to.be.a('string')); pm.test('Fresh operation',()=>pm.expect(r.replayed).to.eql(false));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "06 - Set exact expiry timestamp",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{idempotencyKey}}"
+          }
+        ],
+        "url": "{{baseUrl}}/admin/entitlements/set-expiry",
+        "description": "06 - Set exact expiry timestamp",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"source\": \"admin-postman\",\n  \"reason\": \"{{reason}}\",\n  \"expiresAt\": \"{{expiresAt}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const key=pm.variables.replaceIn('{{$guid}}');",
+              "pm.variables.set('idempotencyKey',key);",
+              "if (!pm.environment.get('expiresAt')) pm.environment.set('expiresAt',new Date(Date.now()+30*86400000).toISOString());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "const r=pm.response.json(); pm.test('Mutation recorded',()=>pm.expect(r.operation.id).to.be.a('string')); pm.test('Fresh operation',()=>pm.expect(r.replayed).to.eql(false));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "07 - Revoke PRO immediately",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{idempotencyKey}}"
+          }
+        ],
+        "url": "{{baseUrl}}/admin/entitlements/revoke",
+        "description": "07 - Revoke PRO immediately",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"source\": \"admin-postman\",\n  \"reason\": \"{{reason}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const key=pm.variables.replaceIn('{{$guid}}');",
+              "pm.variables.set('idempotencyKey',key);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "const r=pm.response.json(); pm.test('Mutation recorded',()=>pm.expect(r.operation.id).to.be.a('string')); pm.test('Fresh operation',()=>pm.expect(r.replayed).to.eql(false));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "08 - Verify current rights",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/admin/entitlements?userId={{userId}}",
+        "description": "08 - Verify current rights"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "pm.test('FREE or PRO',()=>pm.expect(pm.response.json().entitlement.plan).to.be.oneOf(['FREE','PRO']));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "09 - Latest history (2 per page)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/admin/entitlements/history?userId={{userId}}&limit=2",
+        "description": "09 - Latest history (2 per page)"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "const r=pm.response.json();pm.environment.set('nextCursor',r.nextCursor||'');pm.test('Bounded history',()=>pm.expect(r.items.length).to.be.at.most(2));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "10 - Next history page",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/admin/entitlements/history?userId={{userId}}&limit=2&before={{nextCursor}}",
+        "description": "10 - Next history page"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if(!pm.environment.get('nextCursor'))throw new Error('No next page; send request 09 after at least 3 operations');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "const r=pm.response.json();pm.environment.set('nextCursor',r.nextCursor||'');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    }
+  ]
+}

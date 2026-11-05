@@ -3,6 +3,10 @@ import { PrismaService } from '../database/prisma.service.js'
 import type { VerifiedSession } from '../auth/auth.service.js'
 import { CLOCK, type Clock } from '../auth/clock.js'
 import type { components } from '../contracts/cloud-v1.js'
+export function entitlementState(endsAt:Date|null,now:Date):components['schemas']['Entitlements']{
+ if(endsAt&&endsAt>now)return{plan:'PRO',state:endsAt.getTime()-now.getTime()<=72*3600000?'expiring':'active',expiresAt:endsAt.toISOString(),serverTime:now.toISOString()}
+ return{plan:'FREE',state:endsAt?'expired':'free',expiresAt:endsAt?.toISOString()??null,serverTime:now.toISOString()}
+}
 @Injectable()
 export class EntitlementsService {
   constructor(
@@ -24,21 +28,6 @@ export class EntitlementsService {
         take: 1,
       }),
       latest = grants[0]
-    if (latest && latest.endsAt > now)
-      return {
-        plan: 'PRO',
-        state:
-          latest.endsAt.getTime() - now.getTime() <= 72 * 3600000
-            ? 'expiring'
-            : 'active',
-        expiresAt: latest.endsAt.toISOString(),
-        serverTime: now.toISOString(),
-      }
-    return {
-      plan: 'FREE',
-      state: latest ? 'expired' : 'free',
-      expiresAt: latest?.endsAt.toISOString() ?? null,
-      serverTime: now.toISOString(),
-    }
+    return entitlementState(latest?.endsAt??null,now)
   }
 }
