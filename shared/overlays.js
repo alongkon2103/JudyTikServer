@@ -1,5 +1,6 @@
 import { fontOptions } from './win.js'
 export const widgetKinds = [
+ {id:'slider',name:'Slider',description:'รูปและข้อความเลื่อนวน · อัปโหลดรูปหรือเลือกรูปของขวัญ',icon:'slider'},
  {id:'alert',name:'Alert Box',description:'แจ้งเตือนของขวัญ ติดตาม และอีเวนต์',icon:'bell'},
  {id:'big-gift',name:'Big Gift',description:'แสดงของขวัญชิ้นใหญ่พร้อมชื่อผู้ส่ง',icon:'gift'},
  {id:'top-likers',name:'Top Likers',description:'อันดับผู้ส่งหัวใจระหว่างไลฟ์',icon:'heart'},
@@ -28,7 +29,7 @@ const color = value => typeof value === 'string' && /^#[a-f0-9]{6}$/i.test(value
 export function defaultWidget(kind) {
   const item=widgetKinds.find(item=>item.id===kind)
   if(!item)throw new TypeError('INVALID_WIDGET_KIND')
-  return {font:'Judy',theme:'plain-white',title:item.name,viewer:'JUDY GAME',accent:'#595959',background:'#FFFFFF',opacity:100,fontSize:24,value:0,goal:1000,seconds:4975,options:['ร้องเพลง','เต้น','พัก 1 นาที','เล่าเรื่องตลก'],enabled:true,events:['gift','follow','subscribe'],duration:4,minCoins:0,metric:'coins',trigger:'gift',giftId:'*',threshold:1,secondsPerEvent:30,...(kind==='gift-jar'?{showRanking:false,showTotal:true,showRecentGift:false}:{})}
+  return {font:'Judy',theme:'plain-white',title:item.name,viewer:'JUDY GAME',accent:'#595959',background:'#FFFFFF',opacity:kind==='slider'?0:100,fontSize:24,value:0,goal:1000,seconds:4975,options:['ร้องเพลง','เต้น','พัก 1 นาที','เล่าเรื่องตลก'],enabled:true,events:['gift','follow','subscribe'],duration:4,minCoins:0,metric:'coins',trigger:'gift',giftId:'*',threshold:1,secondsPerEvent:30,...(kind==='gift-jar'?{showRanking:false,showTotal:true,showRecentGift:false}:{}),...(kind==='slider'?{sliderItems:[],sliderSpeed:45,sliderSize:120,sliderGap:32,sliderWidth:800,sliderDirection:'left',sliderTextColor:'#FFFFFF'}:{})}
 }
 
 export function safeSpinImage(value) {
@@ -44,7 +45,14 @@ export function validSpinOption(value) {
 }
 export function validWidget(value) {
   try {
-    return exact(value,[...keys,...['showRanking','showTotal','showRecentGift','spinOptions'].filter(key=>Object.hasOwn(value,key))]) && ['showRanking','showTotal','showRecentGift'].every(key=>!Object.hasOwn(value,key)||typeof value[key]==='boolean') && typeof value.font === 'string' && Object.hasOwn(fontOptions,value.font)
+    return exact(value,[...keys,...['showRanking','showTotal','showRecentGift','spinOptions','sliderItems','sliderSpeed','sliderSize','sliderGap','sliderWidth','sliderDirection','sliderTextColor'].filter(key=>Object.hasOwn(value,key))]) && ['showRanking','showTotal','showRecentGift'].every(key=>!Object.hasOwn(value,key)||typeof value[key]==='boolean') && typeof value.font === 'string' && Object.hasOwn(fontOptions,value.font)
+      && (!Object.hasOwn(value,'sliderItems')||array(value.sliderItems,0,20)&&value.sliderItems.every(item=>validSpinOption(item)&&!Object.hasOwn(item,'actionId'))&&new Set(value.sliderItems.map(item=>item.id)).size===value.sliderItems.length)
+      && (!Object.hasOwn(value,'sliderSpeed')||integer(value.sliderSpeed,10,200))
+      && (!Object.hasOwn(value,'sliderSize')||integer(value.sliderSize,48,240))
+      && (!Object.hasOwn(value,'sliderGap')||integer(value.sliderGap,8,96))
+      && (!Object.hasOwn(value,'sliderWidth')||integer(value.sliderWidth,240,1920))
+      && (!Object.hasOwn(value,'sliderDirection')||['left','right'].includes(value.sliderDirection))
+      && (!Object.hasOwn(value,'sliderTextColor')||color(value.sliderTextColor))
       && themes.includes(value.theme) && text(value.title) && text(value.viewer) && color(value.accent) && color(value.background)
       && integer(value.opacity,0,100) && integer(value.fontSize,16,40) && integer(value.value,0,99999)
       && integer(value.goal,1,99999) && integer(value.seconds,0,86400)
@@ -64,13 +72,13 @@ export function defaultOverlayData() {
 export function validOverlayData(value) {
   try {
     return exact(value,['version','widgets']) && value.version === 1
-      && exact(value.widgets,widgetKinds.filter(({id})=>id!=='video'||Object.hasOwn(value.widgets,'video')).map(({id})=>id)) && widgetKinds.every(({id})=>id==='video'&&!Object.hasOwn(value.widgets,id)||validWidget(value.widgets[id]))
-      && ['plain-white','plain-black'].includes(value.widgets['gift-jar'].theme)
+      && exact(value.widgets,widgetKinds.filter(({id})=>!['video','slider'].includes(id)||Object.hasOwn(value.widgets,id)).map(({id})=>id)) && widgetKinds.every(({id})=>['video','slider'].includes(id)&&!Object.hasOwn(value.widgets,id)||validWidget(value.widgets[id]))
+      && ['plain-white','plain-black','crystal-reverie','mochi-pals','enchanted-grove','midnight-grimoire'].includes(value.widgets['gift-jar'].theme)
   } catch { return false }
 }
 
 // Existing accounts acquire video settings without rewriting their saved widgets.
 export function hydrateOverlayData(value) {
  if(!validOverlayData(value))throw new TypeError('INVALID_OVERLAY_DATA')
- return {...value,widgets:{...value.widgets,video:value.widgets.video??defaultWidget('video')}}
+ return {...value,widgets:{...value.widgets,video:value.widgets.video??defaultWidget('video'),slider:value.widgets.slider??defaultWidget('slider')}}
 }

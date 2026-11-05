@@ -733,7 +733,10 @@ export interface components {
             revision: string;
             data: components["schemas"]["TtsData"];
         };
+        SliderItem: {id:string;label:string;imageUrl?:string;imageBindingId?:string;imageDisplayName?:string};
         OverlayWidget: {
+            sliderItems?: components["schemas"]["SliderItem"][];
+            sliderSpeed?:number;sliderSize?:number;sliderGap?:number;sliderWidth?:number;sliderDirection?:"left"|"right";sliderTextColor?:string;
             /** @enum {string} */
             font: "Judy" | "Komika Axis" | "Georgia" | "Arial Black" | "Tahoma" | "monospace";
             /** @enum {string} */
@@ -775,10 +778,11 @@ export interface components {
                 timer: components["schemas"]["OverlayWidget"];
                 "gift-jar": components["schemas"]["OverlayWidget"] & {
                     /** @enum {string} */
-                    theme?: "plain-white" | "plain-black";
+                    theme?: "plain-white" | "plain-black" | "crystal-reverie" | "mochi-pals" | "enchanted-grove" | "midnight-grimoire";
                 };
                 spin: components["schemas"]["OverlayWidget"];
                 video?: components["schemas"]["OverlayWidget"];
+                slider?: components["schemas"]["OverlayWidget"];
             };
         };
         OverlayDocument: {

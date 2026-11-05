@@ -9,16 +9,28 @@ import { OverlaysService } from './service.js'
 export class OverlaysController {
   constructor(@Inject(OverlaysService) private readonly overlays: OverlaysService) {}
 
+  private response(value: Awaited<ReturnType<OverlaysService['get']>>, req: SessionRequest, body?: unknown) {
+    if (req.headers['x-judytik-overlay-features'] === 'slider' ||
+        (body && typeof body === 'object' && 'widgets' in body && body.widgets &&
+         typeof body.widgets === 'object' && Object.hasOwn(body.widgets, 'slider'))) return value
+    // Released desktops reject unknown widget keys and decorated jar themes.
+    // Project their response only; preserve the full stored document.
+    const { slider: _slider, ...widgets } = value.data.widgets
+    if (!['plain-white','plain-black'].includes(widgets['gift-jar'].theme))
+      widgets['gift-jar'] = { ...widgets['gift-jar'], theme: 'plain-white' }
+    return { ...value, data: { ...value.data, widgets } }
+  }
+
   @Get() async get(@Req() req: SessionRequest, @Res({ passthrough: true }) res: Response) {
     const value = await this.overlays.get(req.verifiedSession)
     res.setHeader('etag', '"' + value.revision + '"')
-    return value
+    return this.response(value, req)
   }
 
   @Put() async save(@Req() req: SessionRequest, @Body() body: unknown, @Res({ passthrough: true }) res: Response) {
     if (req.headers['if-none-match'] !== undefined) throw new ApiError(400, 'INVALID_PRECONDITION')
     const value = await this.overlays.save(req.verifiedSession, body, req.headers['if-match'], req.headers['x-request-id'] as string)
     res.setHeader('etag', '"' + value.revision + '"')
-    return value
+    return this.response(value, req, body)
   }
 }

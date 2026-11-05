@@ -28,8 +28,9 @@ export class OverlaysService {
       if ((current?.revision ?? 0n) !== condition.revision)
         throw new ApiError(412, 'OVERLAY_VERSION_CONFLICT')
       const data = JSON.parse(JSON.stringify(hydrateOverlayData(input)))
-      if (!Object.hasOwn(input.widgets, 'video') && current && validOverlayData(current.data))
-        data.widgets.video = hydrateOverlayData(current.data).widgets.video
+      for (const kind of ['video','slider'] as const)
+        if (!Object.hasOwn(input.widgets, kind) && current && validOverlayData(current.data))
+          data.widgets[kind] = hydrateOverlayData(current.data).widgets[kind]
       const row = current
         ? await tx.overlaysWorkspace.update({ where: { userId: actor.userId }, data: { data, revision: { increment: 1 } } })
         : await tx.overlaysWorkspace.create({ data: { userId: actor.userId, data } })
@@ -37,7 +38,7 @@ export class OverlaysService {
         eventName: 'overlays.updated', actorUserId: actor.userId, sessionId: actor.sessionId,
         resourceRevision: row.revision, requestId,
       })
-      return { revision: row.revision.toString(), data: row.data }
+      return { revision: row.revision.toString(), data: hydrateOverlayData(row.data) }
     })
   }
 }

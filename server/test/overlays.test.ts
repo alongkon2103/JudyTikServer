@@ -6,7 +6,7 @@ import {assertContract} from '../src/auth/contracts.js'
 test('OverlayData canonical contract accepts account settings and rejects extra runtime state',()=>{
  const data=defaultOverlayData()
  assert.deepEqual(assertContract('OverlayData',data),data)
- for(const value of [{...data,history:[]},{...data,userId:'forged'},{...data,widgets:{...data.widgets,'gift-jar':{...data.widgets['gift-jar'],theme:'mochi-pals'}}}])
+ for(const value of [{...data,history:[]},{...data,userId:'forged'},{...data,widgets:{...data.widgets,'gift-jar':{...data.widgets['gift-jar'],theme:'orbital-bloom'}}}])
   assert.throws(()=>assertContract('OverlayData',value),/INVALID_REQUEST/)
 })
 

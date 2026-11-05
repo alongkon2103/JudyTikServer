@@ -58,6 +58,31 @@ pm2 restart judytik-backend
 
 ## พัฒนาและทดสอบ
 
+### อัปเดต Slider และธีม Overlay
+
+Backend รองรับ Slider รูป/ข้อความสูงสุด 20 รายการ ทั้งรูปของขวัญ HTTPS และ image binding ของรูปที่อัปโหลดบน Desktop พร้อมความเร็ว ขนาด ระยะห่าง ทิศทางและสีข้อความ รวมถึงธีมเทศกาลของโหลของขวัญแล้ว รุ่นเดิมจะตอบ `INVALID_REQUEST` เมื่อ Desktop ส่ง `widgets.slider` มา ทำให้บันทึก Overlay ไม่สำเร็จ
+
+ไม่ต้องเปลี่ยน `.env`, dependencies หรือรัน migration ข้อมูล Overlay เดิมจะได้รับค่าเริ่มต้นของ Slider ตอนอ่าน และการบันทึกจาก Desktop รุ่นเก่าที่ไม่ส่ง Slider จะเก็บ Slider เดิมไว้ รูปอัปโหลดจริงยังอยู่บน Desktop; Backend เก็บเฉพาะ binding ID และชื่อไฟล์
+
+อัปเดตจาก root ของ repository บน Windows Server (แก้ path ให้ตรงกับเครื่องจริง):
+
+```powershell
+Set-Location C:\JudyTikServer
+git pull --ff-only
+if ($LASTEXITCODE -ne 0) { throw 'git pull ไม่สำเร็จ' }
+pm2 stop judytik-backend
+if ($LASTEXITCODE -ne 0) { throw 'หยุด Backend ไม่สำเร็จ' }
+npm --prefix server run build
+if ($LASTEXITCODE -ne 0) { throw 'Build ไม่สำเร็จ ยังไม่ควรเปิด Backend ด้วย build ที่ไม่ครบ' }
+pm2 restart judytik-backend
+if ($LASTEXITCODE -ne 0) { throw 'Restart Backend ไม่สำเร็จ' }
+Invoke-RestMethod http://127.0.0.1:4300/v1/health
+```
+
+Desktop รุ่นใหม่ส่ง header `x-judytik-overlay-features: slider` เพื่อขอข้อมูลครบ ส่วนรุ่นเก่าจะได้รับรูปแบบเดิมโดยไม่ลบ Slider ที่เก็บไว้
+
+จากนั้นปิด/เปิด Desktop รุ่นใหม่ กดโหลดล่าสุดแล้วบันทึก Slider อีกครั้ง ตรวจว่าปิด/เปิดหน้าตั้งค่าแล้วยังเห็นรายการเดิม ถ้าใช้ Windows Service แทน PM2 ให้หยุด/เริ่ม service เดิมของเครื่องแทนคำสั่ง PM2 ไม่เปิด Backend สองตัวพร้อมกัน
+
 ใช้ Node.js 24 รันจาก server:
 
 ```sh

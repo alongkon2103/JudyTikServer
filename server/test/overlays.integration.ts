@@ -27,7 +27,7 @@ const document = () => {
   return data
 }
 const call = (user: Account, options: RequestInit = {}) => fetch(base + '/v1/me/overlays', {
-  ...options, headers: { 'content-type': 'application/json', authorization: 'Bearer ' + user.tokens.access_token, ...options.headers },
+  ...options, headers: { 'x-judytik-overlay-features':'slider', 'content-type': 'application/json', authorization: 'Bearer ' + user.tokens.access_token, ...options.headers },
 })
 const save = (user: Account, body: unknown, revision = '0', requestId = randomUUID()) => call(user, {
   method: 'PUT', headers: { 'if-match': '"' + revision + '"', 'x-request-id': requestId }, body: JSON.stringify(body),
@@ -82,7 +82,7 @@ test('OVERLAYS rejects invalid documents and preconditions without changing stor
     {...changed,widgets:{...changed.widgets,alert:{...changed.widgets.alert,minCoins:-1}}},
     {...changed,widgets:{...changed.widgets,alert:{...changed.widgets.alert,title:'bad\u202e'}}},
     {...changed,widgets:{...changed.widgets,alert:{...changed.widgets.alert,events:['gift','gift']}}},
-    {...changed,widgets:{...changed.widgets,'gift-jar':{...changed.widgets['gift-jar'],theme:'mochi-pals'}}},
+    {...changed,widgets:{...changed.widgets,'gift-jar':{...changed.widgets['gift-jar'],theme:'orbital-bloom'}}},
     {...changed,history:[]}, {...changed,userId:randomUUID()},
   ])
     assert.equal((await save(a, invalid)).status, 400)

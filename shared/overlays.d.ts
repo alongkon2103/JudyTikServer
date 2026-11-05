@@ -1,4 +1,4 @@
-export type WidgetKind = 'alert' | 'big-gift' | 'top-likers' | 'goal' | 'leaderboard' | 'timer' | 'gift-jar' | 'spin' | 'video'
+export type WidgetKind = 'alert' | 'big-gift' | 'top-likers' | 'goal' | 'leaderboard' | 'timer' | 'gift-jar' | 'spin' | 'video' | 'slider'
 export type OverlayTrigger = 'gift' | 'like' | 'follow' | 'comment' | 'share' | 'subscribe'
 export type OverlayMetric = 'coins' | 'gifts' | 'likes' | 'follows'
 export interface SpinOption {id:string;label:string;imageUrl?:string;imageBindingId?:string;imageDisplayName?:string;actionId?:string}
@@ -18,6 +18,13 @@ export interface WidgetConfig {
   seconds: number
   options: string[]
   spinOptions?: SpinOption[]
+  sliderItems?: SpinOption[]
+  sliderSpeed?: number
+  sliderSize?: number
+  sliderGap?: number
+  sliderWidth?: number
+  sliderDirection?: 'left'|'right'
+  sliderTextColor?: string
   enabled: boolean
   events: OverlayTrigger[]
   duration: number
@@ -33,7 +40,7 @@ export interface WidgetConfig {
 }
 export type WidgetConfigs = Record<WidgetKind,WidgetConfig>
 export interface OverlayData {version:1; widgets:WidgetConfigs}
-export const widgetKinds: readonly {id:WidgetKind;name:string;description:string;icon:'bell'|'gift'|'heart'|'target'|'trophy'|'clock'|'jar'|'sparkles'|'video'}[]
+export const widgetKinds: readonly {id:WidgetKind;name:string;description:string;icon:'bell'|'gift'|'heart'|'target'|'trophy'|'clock'|'jar'|'sparkles'|'video'|'slider'}[]
 export function defaultWidget(kind:WidgetKind):WidgetConfig
 export function validWidget(value:unknown):value is WidgetConfig
 export function defaultOverlayData():OverlayData
