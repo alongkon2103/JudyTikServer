@@ -182,6 +182,7 @@ try {
       'test/games.integration.ts',
       'test/auth.integration.ts',
       'test/accounts.integration.ts',
+      'test/account-linking.integration.ts',
       'test/entitlements-admin.integration.ts',
       'test/direct-launch.integration.ts',
       'test/presets.integration.ts',

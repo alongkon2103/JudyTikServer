@@ -28,3 +28,5 @@ GRANT SELECT,INSERT,UPDATE ON judytik.live_history TO :"runtime_role";
 -- Entitlement history is append-only to the runtime role. Mutations require the admin service key.
 GRANT INSERT,UPDATE ON judytik.entitlement_grants TO :"runtime_role";
 GRANT SELECT,INSERT ON judytik.entitlement_operations TO :"runtime_role";
+GRANT UPDATE(merged_into_id,merged_at) ON judytik.users TO :"runtime_role";
+GRANT SELECT,INSERT ON judytik.account_merge_archives TO :"runtime_role";

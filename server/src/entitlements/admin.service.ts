@@ -7,6 +7,7 @@ import {ApiError} from '../http/api-error.js'
 import {audit} from '../audit/write.js'
 import {adjustSchema,expirySchema,revokeSchema,targetSchema,historySchema,parse,type Target,type Mutation} from './contracts.js'
 import {entitlementState} from './entitlements.service.js'
+import {accountOwners} from '../accounts/merge.service.js'
 const DAY=86400000;
 type Operation='adjust'|'set-expiry'|'revoke'
 const dto=(row:EntitlementOperation)=>({id:row.id,userId:row.userId,idempotencyKey:row.idempotencyKey,operation:row.operation,days:row.days,source:row.source,reason:row.reason,before:row.beforeState,after:row.afterState,requestId:row.requestId,createdAt:row.createdAt.toISOString()})
@@ -14,8 +15,10 @@ const dto=(row:EntitlementOperation)=>({id:row.id,userId:row.userId,idempotencyK
 export class EntitlementsAdminService{
  constructor(@Inject(PrismaService) private readonly db:PrismaService,@Inject(CLOCK) private readonly clock:Clock){}
  private async resolve(tx:Prisma.TransactionClient,target:Target){
-  const user=target.userId?await tx.user.findUnique({where:{id:target.userId}}):(await tx.userEmail.findUnique({where:{emailKey:target.email!},include:{user:true}}))?.user
+  let user=target.userId?await tx.user.findUnique({where:{id:target.userId}}):(await tx.userEmail.findUnique({where:{emailKey:target.email!},include:{user:true}}))?.user
   if(!user)throw new ApiError(404,'ENTITLEMENT_USER_NOT_FOUND')
+  const seen=new Set<string>()
+  while(user.mergedIntoId){if(seen.has(user.id))throw new ApiError(500,'ACCOUNT_LINK_INVALID');seen.add(user.id);user=await tx.user.findUnique({where:{id:user.mergedIntoId}});if(!user)throw new ApiError(404,'ENTITLEMENT_USER_NOT_FOUND')}
   return user
  }
  private async state(tx:Prisma.TransactionClient,userId:string,now:Date){
@@ -29,10 +32,10 @@ export class EntitlementsAdminService{
  async history(input:unknown){
   const query=parse(historySchema,input)
   return this.db.client.$transaction(async tx=>{
-   const user=await this.resolve(tx,query)
+   const user=await this.resolve(tx,query),owners=await accountOwners(tx,user.id)
    let cursor:EntitlementOperation|null=null
-   if(query.before){cursor=await tx.entitlementOperation.findUnique({where:{id:query.before}});if(!cursor||cursor.userId!==user.id)throw new ApiError(400,'INVALID_CURSOR')}
-   const rows=await tx.entitlementOperation.findMany({where:{userId:user.id,...(cursor?{OR:[{createdAt:{lt:cursor.createdAt}},{createdAt:cursor.createdAt,id:{lt:cursor.id}}]}:{})},orderBy:[{createdAt:'desc'},{id:'desc'}],take:query.limit+1})
+   if(query.before){cursor=await tx.entitlementOperation.findUnique({where:{id:query.before}});if(!cursor||!owners.includes(cursor.userId))throw new ApiError(400,'INVALID_CURSOR')}
+   const rows=await tx.entitlementOperation.findMany({where:{userId:{in:owners},...(cursor?{OR:[{createdAt:{lt:cursor.createdAt}},{createdAt:cursor.createdAt,id:{lt:cursor.id}}]}:{})},orderBy:[{createdAt:'desc'},{id:'desc'}],take:query.limit+1})
    const items=rows.slice(0,query.limit)
    return{userId:user.id,items:items.map(dto),nextCursor:rows.length>query.limit?items.at(-1)!.id:null}
   })
@@ -49,7 +52,12 @@ export class EntitlementsAdminService{
    const days='days'in input&&typeof input.days==='number'?input.days:null,expiresAt='expiresAt'in input&&typeof input.expiresAt==='string'?new Date(input.expiresAt).toISOString():null
    const requestHash=createHash('sha256').update(JSON.stringify({userId:user.id,operation,days,expiresAt,source:input.source,reason:input.reason})).digest('hex')
    const prior=await tx.entitlementOperation.findUnique({where:{idempotencyKey:key}})
-   if(prior){if(prior.requestHash!==requestHash)throw new ApiError(409,'IDEMPOTENCY_KEY_CONFLICT');return{replayed:true,operation:dto(prior),entitlement:prior.afterState}}
+   if(prior){
+    const owners=await accountOwners(tx,user.id)
+    const oldHash=owners.includes(prior.userId)?createHash('sha256').update(JSON.stringify({userId:prior.userId,operation,days,expiresAt,source:input.source,reason:input.reason})).digest('hex'):null
+    if(prior.requestHash!==requestHash&&prior.requestHash!==oldHash)throw new ApiError(409,'IDEMPOTENCY_KEY_CONFLICT')
+    return{replayed:true,operation:dto(prior),entitlement:prior.afterState}
+   }
    const now=this.clock.now(),before=await this.state(tx,user.id,now)
    let end:Date|null=null
    if(operation==='adjust'){

@@ -111,3 +111,8 @@ Prisma CLI ต้องมี `DIRECT_URL` ใน environment หรือ `serv
 API paths ใช้ `/v1`; ดู `server/openapi.json` และ [ข้อมูล API](server/README.md)
 
 เมื่อเปลี่ยน API contracts หรือ shared validators ใน repository นี้ ต้องตรวจ compatibility กับ Desktop และ sync เวอร์ชันที่เข้าคู่กันก่อนออก release ไม่คัดไฟล์ env ข้าม repository
+
+
+## Google / Discord shared accounts
+
+See [server/ACCOUNT_LINKING.md](server/ACCOUNT_LINKING.md) for verified-email linking, preserving both accounts, and the required Windows deployment steps.

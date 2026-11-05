@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
+import {canonicalUser,mergeVerifiedAccounts} from '../accounts/merge.service.js'
 import { z } from 'zod'
 import {
   PrismaService,
@@ -301,6 +302,8 @@ export class AuthService {
         throw new ApiError(400, 'OAUTH_STATE_INVALID')
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${provider + ':' + profile.subject},0))`
       const now = this.clock.now()
+      const verifiedEmail=profile.emailVerified&&profile.email?profile.email.trim().toLowerCase():null
+      if(verifiedEmail)await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${'email-address:'+sha256(verifiedEmail).toString('hex')},0))`
       let identity = await tx.identity.findUnique({
         where: {
           provider_providerSubject: {
@@ -311,6 +314,14 @@ export class AuthService {
         include: { user: true },
       })
       let user = identity?.user
+      if(user)user=await canonicalUser(tx,user.id)
+      const emailOwner=verifiedEmail?await tx.userEmail.findUnique({where:{emailKey:verifiedEmail}}):null
+      if(emailOwner){
+        const primary=await canonicalUser(tx,emailOwner.userId)
+        if(user&&user.id!==primary.id)user=await mergeVerifiedAccounts(tx,user.id,primary.id,now,requestId)
+        else if(!user)user=primary
+      }
+      if(!identity&&user)await tx.identity.create({data:{userId:user.id,provider,providerSubject:profile.subject,createdAt:now}})
       if (!user) {
         user = await tx.user.create({
           data: {
@@ -335,7 +346,6 @@ export class AuthService {
       if(identity) user=await tx.user.update({where:{id:user.id},data:{displayName:profile.displayName,...(profile.avatarUrl?{avatarUrl:profile.avatarUrl}:{})}})
       if (profile.emailVerified && profile.email) {
         const email = profile.email.trim().toLowerCase()
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${'email-address:' + sha256(email).toString('hex')},0))`
         await tx.$queryRaw`SELECT id FROM judytik.users WHERE id=${user.id}::uuid FOR UPDATE`
         await tx.userEmail.createMany({
           data: [
@@ -368,7 +378,7 @@ export class AuthService {
         requestId,
       })
       return updated
-    })
+    },{timeout:30000,maxWait:10000})
     return this.nativeRedirect(attempt, { code })
   }
   async cancel(input: unknown, requestId: string) {
@@ -436,7 +446,7 @@ export class AuthService {
       )
         throw unauthorized()
       const user = await tx.user.findUnique({ where: { id: row.userId } })
-      if (!user || user.disabledAt) throw unauthorized()
+      if (!user || user.disabledAt || user.mergedIntoId) throw unauthorized()
       const device = await tx.device.upsert({
         where: {
           userId_installationId: {
@@ -502,7 +512,7 @@ export class AuthService {
         !session ||
         session.revokedAt ||
         session.expiresAt <= now ||
-        session.user.disabledAt
+        session.user.disabledAt || session.user.mergedIntoId
       )
         return null
       const current = await tx.refreshToken.findUnique({
@@ -581,7 +591,7 @@ export class AuthService {
         deviceId: identity.deviceId,
         revokedAt: null,
         expiresAt: { gt: this.clock.now() },
-        user: { disabledAt: null },
+        user: { disabledAt: null,mergedIntoId:null },
       },
     })
     if (!session) throw unauthorized()

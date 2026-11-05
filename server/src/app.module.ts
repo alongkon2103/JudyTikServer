@@ -26,6 +26,7 @@ import { SessionGuard } from './auth/session.guard.js'
 import { CLOCK, systemClock, type Clock } from './auth/clock.js'
 import { AccountsController } from './accounts/accounts.controller.js'
 import { AccountsService } from './accounts/accounts.service.js'
+import {AccountMergeService} from './accounts/merge.service.js'
 import { EmailService } from './accounts/email.service.js'
 import { VerificationMailer } from './accounts/mailer.js'
 import { EntitlementsService } from './entitlements/entitlements.service.js'
@@ -98,6 +99,7 @@ export class AppModule {
         AuthService,
         SessionGuard,
         AccountsService,
+        AccountMergeService,
         EmailService,
         EntitlementsService,
         PresetsService, SettingsService, LiveService, WinService, SoundpadService, TtsService, OverlaysService,

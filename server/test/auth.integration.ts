@@ -285,7 +285,7 @@ test('auth exchange and cancel serialize to an explicit success/cancel outcome',
     /AUTH_UNAUTHORIZED|AUTH_ATTEMPT_ALREADY_CONSUMED/,
   )
 })
-test('auth uses same provider subject across devices but never merges identities from shared email', async () => {
+test('auth links freshly verified Google and Discord identities with the same email', async () => {
   const subject = 'same-' + randomUUID(),
     email = 'shared-' + randomUUID() + '@example.invalid'
   const a = await signedIn(subject, 'google', email),
@@ -293,7 +293,7 @@ test('auth uses same provider subject across devices but never merges identities
     other = await signedIn('discord-' + randomUUID(), 'discord', email)
   assert.equal(a.session.userId, b.session.userId)
   assert.notEqual(a.tokens.deviceId, b.tokens.deviceId)
-  assert.notEqual(a.session.userId, other.session.userId)
+  assert.equal(a.session.userId, other.session.userId)
   const attached = await db.client.userEmail.findUniqueOrThrow({
     where: { emailKey: email },
   })

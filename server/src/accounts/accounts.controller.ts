@@ -15,6 +15,7 @@ import { SessionGuard, type SessionRequest } from '../auth/session.guard.js'
 import { AccountsService } from './accounts.service.js'
 import { EmailService } from './email.service.js'
 import { EntitlementsService } from '../entitlements/entitlements.service.js'
+import {AccountMergeService} from './merge.service.js'
 @Controller('me')
 @UseGuards(SessionGuard)
 export class AccountsController {
@@ -24,6 +25,7 @@ export class AccountsController {
     @Inject(EmailService) private readonly email: EmailService,
     @Inject(EntitlementsService)
     private readonly entitlements: EntitlementsService,
+    @Inject(AccountMergeService) private readonly merges:AccountMergeService,
   ) {}
   @Get() me(@Req() req: SessionRequest) {
     return this.accounts.me(req.verifiedSession)
@@ -31,6 +33,9 @@ export class AccountsController {
   @Get('entitlements') plan(@Req() req: SessionRequest) {
     return this.entitlements.get(req.verifiedSession)
   }
+  @Get('account-merges') mergesList(@Req() req:SessionRequest){return this.merges.list(req.verifiedSession)}
+  @Get('account-merges/:id') mergeArchive(@Req() req:SessionRequest,@Param('id') id:string){return this.merges.get(req.verifiedSession,id)}
+  @Post('account-merges/:id/restore') @HttpCode(200) restoreArchive(@Req() req:SessionRequest,@Param('id') id:string,@Body() body:unknown){return this.merges.restore(req.verifiedSession,id,body,req.headers['x-request-id'] as string)}
   @Get('sessions') sessions(@Req() req: SessionRequest) {
     return this.accounts.sessions(req.verifiedSession)
   }

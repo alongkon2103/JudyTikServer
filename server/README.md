@@ -107,3 +107,8 @@ Invoke-RestMethod http://127.0.0.1:4300/v1/health
 ```
 
 `db:grants` อ่านชื่อ runtime role จาก DATABASE_URL หากใช้ pooler username ที่ไม่ตรงกับชื่อ role จริง ให้ตั้ง `RUNTIME_DB_ROLE=judytik_runtime` (หรือชื่อจริง) ใน `server/.env` สคริปต์จะปฏิเสธ owner/superuser/BYPASSRLS และไม่พิมพ์รหัสผ่าน ไม่ต้องเพิ่ม API key ใหม่ ใช้ ADMIN_API_KEY เดิมได้ การเชื่อมต่อ runtime บังคับ timezone UTC เพื่อให้ timestamp ตรงกันบน Windows/ฐานข้อมูลที่ตั้งเขตเวลาท้องถิ่น
+
+
+## Google / Discord shared accounts
+
+See [ACCOUNT_LINKING.md](ACCOUNT_LINKING.md) for verified-email linking, backups and Windows deployment commands.

@@ -21,7 +21,7 @@ export class AccountsService {
             verifiedAt: user.email.verifiedAt.toISOString(),
           }
         : null,
-      providers: user.identities.map((x) => x.provider as Provider),
+      providers: [...new Set(user.identities.map((x) => x.provider as Provider))],
     }
   }
   async sessions(
