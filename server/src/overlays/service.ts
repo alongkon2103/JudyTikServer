@@ -28,6 +28,14 @@ export class OverlaysService {
       if ((current?.revision ?? 0n) !== condition.revision)
         throw new ApiError(412, 'OVERLAY_VERSION_CONFLICT')
       const data = JSON.parse(JSON.stringify(hydrateOverlayData(input)))
+      if(current&&validOverlayData(current.data)&&data.widgets.spin.spinOptions){
+        const saved=new Map(current.data.widgets.spin.spinOptions?.map(option=>[option.id,option.weight]))
+        for(const option of data.widgets.spin.spinOptions)if(!Object.hasOwn(option,'weight')&&saved.has(option.id)&&saved.get(option.id)!==undefined)option.weight=saved.get(option.id)
+      }
+      if(current&&validOverlayData(current.data)&&data.widgets.slider.sliderItems){
+        const saved=new Map(current.data.widgets.slider?.sliderItems?.map(item=>[item.id,item.textColor]))
+        for(const item of data.widgets.slider.sliderItems)if(!Object.hasOwn(item,'textColor')&&saved.get(item.id)!==undefined)item.textColor=saved.get(item.id)
+      }
       for (const kind of ['video','slider'] as const)
         if (!Object.hasOwn(input.widgets, kind) && current && validOverlayData(current.data))
           data.widgets[kind] = hydrateOverlayData(current.data).widgets[kind]

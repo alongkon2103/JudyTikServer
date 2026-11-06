@@ -36,17 +36,19 @@ export function safeSpinImage(value) {
  try { if(typeof value!=='string'||value.length>2048||/[\x00-\x20\x7f]/.test(value))return false;const url=new URL(value);return url.protocol==='https:'&&!url.username&&!url.password } catch { return false }
 }
 export function validSpinOption(value) {
- return exact(value,['id','label',...['imageUrl','imageBindingId','imageDisplayName','actionId'].filter(key=>Object.hasOwn(value,key))])
+ return exact(value,['id','label',...['imageUrl','imageBindingId','imageDisplayName','actionId','weight','textColor'].filter(key=>Object.hasOwn(value,key))])
   && typeof value.id==='string'&&/^[A-Za-z0-9_-]{1,64}$/.test(value.id)&&text(value.label)
   && (!Object.hasOwn(value,'imageUrl')||safeSpinImage(value.imageUrl))
   && (!Object.hasOwn(value,'imageBindingId')||typeof value.imageBindingId==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.imageBindingId)&&typeof value.imageDisplayName==='string'&&value.imageDisplayName.trim().length>0&&value.imageDisplayName.length<=255&&!/[\\/\x00-\x1f\x7f-\x9f]/.test(value.imageDisplayName)&&!Object.hasOwn(value,'imageUrl'))
   && (!Object.hasOwn(value,'imageDisplayName')||Object.hasOwn(value,'imageBindingId'))
+  && (!Object.hasOwn(value,'textColor')||value.textColor===null||color(value.textColor))
+  && (!Object.hasOwn(value,'weight')||integer(value.weight,0,100))
   && (!Object.hasOwn(value,'actionId')||typeof value.actionId==='string'&&/^[A-Za-z0-9_-]{1,64}$/.test(value.actionId))
 }
 export function validWidget(value) {
   try {
     return exact(value,[...keys,...['showRanking','showTotal','showRecentGift','spinOptions','sliderItems','sliderSpeed','sliderSize','sliderGap','sliderWidth','sliderDirection','sliderTextColor'].filter(key=>Object.hasOwn(value,key))]) && ['showRanking','showTotal','showRecentGift'].every(key=>!Object.hasOwn(value,key)||typeof value[key]==='boolean') && typeof value.font === 'string' && Object.hasOwn(fontOptions,value.font)
-      && (!Object.hasOwn(value,'sliderItems')||array(value.sliderItems,0,20)&&value.sliderItems.every(item=>validSpinOption(item)&&!Object.hasOwn(item,'actionId'))&&new Set(value.sliderItems.map(item=>item.id)).size===value.sliderItems.length)
+      && (!Object.hasOwn(value,'sliderItems')||array(value.sliderItems,0,20)&&value.sliderItems.every(item=>validSpinOption(item)&&!Object.hasOwn(item,'actionId')&&!Object.hasOwn(item,'weight'))&&new Set(value.sliderItems.map(item=>item.id)).size===value.sliderItems.length)
       && (!Object.hasOwn(value,'sliderSpeed')||integer(value.sliderSpeed,10,200))
       && (!Object.hasOwn(value,'sliderSize')||integer(value.sliderSize,48,240))
       && (!Object.hasOwn(value,'sliderGap')||integer(value.sliderGap,8,96))
@@ -56,7 +58,7 @@ export function validWidget(value) {
       && themes.includes(value.theme) && text(value.title) && text(value.viewer) && color(value.accent) && color(value.background)
       && integer(value.opacity,0,100) && integer(value.fontSize,16,40) && integer(value.value,0,99999)
       && integer(value.goal,1,99999) && integer(value.seconds,0,86400)
-      && (!Object.hasOwn(value,'spinOptions')||array(value.spinOptions,2,12)&&value.spinOptions.every(validSpinOption)&&new Set(value.spinOptions.map(option=>option.id)).size===value.spinOptions.length&&value.spinOptions.length===value.options.length&&value.spinOptions.every((option,index)=>option.label===value.options[index]))
+      && (!Object.hasOwn(value,'spinOptions')||array(value.spinOptions,2,12)&&value.spinOptions.every(validSpinOption)&&new Set(value.spinOptions.map(option=>option.id)).size===value.spinOptions.length&&value.spinOptions.length===value.options.length&&value.spinOptions.every((option,index)=>option.label===value.options[index])&&value.spinOptions.some(option=>(option.weight??10)>0))
       && array(value.options,2,12) && value.options.every(text) && typeof value.enabled === 'boolean'
       && array(value.events,0,triggers.length) && value.events.every(event=>triggers.includes(event)) && new Set(value.events).size === value.events.length
       && integer(value.duration,1,30) && integer(value.minCoins,0,1000000) && ['coins','gifts','likes','follows'].includes(value.metric)

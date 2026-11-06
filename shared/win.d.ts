@@ -14,7 +14,7 @@ export type SpinConfig={
  width: number; height: number; gap: number; fontSize: number; font: string; duration: number;
 }
 export type WinRule={id:string;trigger:'gift'|'like'|'follow'|'comment'|'share'|'subscribe';giftId:string;threshold:number;comment:string;effect:'win'|'spin';delta:number;enabled:boolean}
-export type WinData={count:number;goal:number;step:number;allowNegative:boolean;slots:number[];rules:WinRule[];overlay:OverlayConfig;spin:SpinConfig}
+export type WinData={count:number;goal:number;step:number;allowNegative:boolean;slots:number[];slotWeights?:number[];rules:WinRule[];overlay:OverlayConfig;spin:SpinConfig}
 export type WinDocument={revision:string;data:WinData}
 export function defaultWinData():WinData
 export function validWinData(value:unknown):value is WinData

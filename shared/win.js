@@ -1,3 +1,4 @@
+import {validSpinWeights} from './spin-weights.js'
 import {normalizeShortcut,shortcutIdentity,reservedShortcut} from './shortcuts.js'
 import defaults from './win-defaults.json' with {type:'json'}
 export const fontOptions={Judy:'IBM Plex Sans Thai','Komika Axis':'Komika Axis',Georgia:'Georgia','Arial Black':'Arial Black',Tahoma:'Tahoma',monospace:'Monospace'}
@@ -9,8 +10,10 @@ const int=(v,min,max)=>Number.isSafeInteger(v)&&v>=min&&v<=max
 const text=(v,max)=>typeof v==='string'&&v.length<=max&&!/[\x00-\x1f\x7f]/.test(v)
 const hex=v=>typeof v==='string'&&/^#[a-f0-9]{6}$/i.test(v)
 export function validWinData(d){
- if(!exact(d,defaults)||!int(d.count,-9999,9999)||!int(d.goal,1,9999)||!int(d.step,1,999)||typeof d.allowNegative!=='boolean'||(!d.allowNegative&&d.count<0))return false
+ if(!object(d))return false
+ if(!exact(d,{...defaults,...(Object.hasOwn(d,'slotWeights')?{slotWeights:0}:{})})||!int(d.count,-9999,9999)||!int(d.goal,1,9999)||!int(d.step,1,999)||typeof d.allowNegative!=='boolean'||(!d.allowNegative&&d.count<0))return false
  if(!Array.isArray(d.slots)||d.slots.length<2||d.slots.length>12||!d.slots.every(v=>int(v,-999,999)&&v!==0))return false
+ if(Object.hasOwn(d,'slotWeights')&&!validSpinWeights(d.slotWeights,d.slots.length))return false
  if(!Array.isArray(d.rules)||d.rules.length>100)return false
  const ids=new Set()
  for(const r of d.rules){if(!exact(r,{id:0,trigger:0,giftId:0,threshold:0,comment:0,effect:0,delta:0,enabled:0})||!text(r.id,64)||!r.id||ids.has(r.id)||!['gift','like','follow','comment','share','subscribe'].includes(r.trigger)||!text(r.giftId,20)||(r.trigger==='gift'&&!/^[1-9][0-9]{0,19}$/.test(r.giftId))||!int(r.threshold,1,99999)||!text(r.comment,100)||(r.trigger==='comment'&&!r.comment.trim())||!['win','spin'].includes(r.effect)||!int(r.delta,-999,999)||(r.effect==='win'&&r.delta===0)||typeof r.enabled!=='boolean')return false;ids.add(r.id)}

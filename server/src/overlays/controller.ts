@@ -10,7 +10,16 @@ export class OverlaysController {
   constructor(@Inject(OverlaysService) private readonly overlays: OverlaysService) {}
 
   private response(value: Awaited<ReturnType<OverlaysService['get']>>, req: SessionRequest, body?: unknown) {
-    if (req.headers['x-judytik-overlay-features'] === 'slider' ||
+    const features=String(req.headers['x-judytik-overlay-features']??'').split(',')
+    if(!features.includes('spin-weights')){
+      value=structuredClone(value)
+      if(value.data.widgets.spin.spinOptions)value.data.widgets.spin.spinOptions=value.data.widgets.spin.spinOptions.map(({weight:_weight,...option})=>option)
+    }
+    if(!features.includes('slider-item-colors')&&value.data.widgets.slider?.sliderItems){
+      value=structuredClone(value)
+      value.data.widgets.slider.sliderItems=value.data.widgets.slider.sliderItems!.map(({textColor:_color,...item})=>item)
+    }
+    if (features.includes('slider') ||
         (body && typeof body === 'object' && 'widgets' in body && body.widgets &&
          typeof body.widgets === 'object' && Object.hasOwn(body.widgets, 'slider'))) return value
     // Released desktops reject unknown widget keys and decorated jar themes.

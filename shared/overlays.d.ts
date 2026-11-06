@@ -1,7 +1,7 @@
 export type WidgetKind = 'alert' | 'big-gift' | 'top-likers' | 'goal' | 'leaderboard' | 'timer' | 'gift-jar' | 'spin' | 'video' | 'slider'
 export type OverlayTrigger = 'gift' | 'like' | 'follow' | 'comment' | 'share' | 'subscribe'
 export type OverlayMetric = 'coins' | 'gifts' | 'likes' | 'follows'
-export interface SpinOption {id:string;label:string;imageUrl?:string;imageBindingId?:string;imageDisplayName?:string;actionId?:string}
+export interface SpinOption {id:string;label:string;imageUrl?:string;imageBindingId?:string;imageDisplayName?:string;actionId?:string;weight?:number;textColor?:string|null}
 export function safeSpinImage(value:unknown):value is string
 export function validSpinOption(value:unknown):value is SpinOption
 export interface WidgetConfig {

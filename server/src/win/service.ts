@@ -17,6 +17,7 @@ export class WinService {
    const current=await tx.winWorkspace.findUnique({where:{userId:actor.userId}})
    if((current?.revision??0n)!==condition.revision)throw new ApiError(412,'WIN_VERSION_CONFLICT')
    const data=JSON.parse(JSON.stringify(input))
+   if(!Object.hasOwn(input,'slotWeights')&&current&&validWinData(current.data)&&JSON.stringify(input.slots)===JSON.stringify(current.data.slots)&&current.data.slotWeights)data.slotWeights=current.data.slotWeights
    const row=current?await tx.winWorkspace.update({where:{userId:actor.userId},data:{data,revision:{increment:1}}}):await tx.winWorkspace.create({data:{userId:actor.userId,data}})
    await audit(tx,{eventName:'win.updated',actorUserId:actor.userId,sessionId:actor.sessionId,resourceRevision:row.revision,requestId})
    return{revision:row.revision.toString(),data:row.data}
