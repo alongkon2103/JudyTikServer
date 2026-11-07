@@ -728,15 +728,13 @@ export interface components {
                 blockedWords: string[];
                 excludedBasicWords?: ("fuck" | "fucking" | "fucked" | "fucker" | "motherfucker" | "motherfucking" | "shit" | "shitty" | "bullshit" | "bitch" | "bitches" | "asshole" | "arsehole" | "cunt" | "dick" | "dickhead" | "bastard" | "pussy" | "cock" | "เหี้ย" | "ไอ้เหี้ย" | "อีเหี้ย" | "สัส" | "สัด" | "ไอ้สัส" | "อีสัส" | "สัตว์นรก" | "ควย" | "ไอ้ควย" | "หี" | "เย็ด" | "เย็ดแม่" | "แม่ง" | "แม่เย็ด" | "หน้าหี" | "ส้นตีน")[];
             };
+            audience?: components["schemas"]["TtsAudience"];
         };
         TtsDocument: {
             revision: string;
             data: components["schemas"]["TtsData"];
         };
-        SliderItem: {id:string;label:string;imageUrl?:string;imageBindingId?:string;imageDisplayName?:string};
         OverlayWidget: {
-            sliderItems?: components["schemas"]["SliderItem"][];
-            sliderSpeed?:number;sliderSize?:number;sliderGap?:number;sliderWidth?:number;sliderDirection?:"left"|"right";sliderTextColor?:string;
             /** @enum {string} */
             font: "Judy" | "Komika Axis" | "Georgia" | "Arial Black" | "Tahoma" | "monospace";
             /** @enum {string} */
@@ -765,6 +763,15 @@ export interface components {
             showTotal?: boolean;
             showRecentGift?: boolean;
             secondsPerEvent: number;
+            sliderItems?: components["schemas"]["SliderItem"][];
+            sliderSpeed?: number;
+            sliderSize?: number;
+            sliderGap?: number;
+            sliderWidth?: number;
+            /** @enum {string} */
+            sliderDirection?: "left" | "right";
+            sliderTextColor?: string;
+            bigGiftLimit?: number;
         };
         OverlayData: {
             /** @constant */
@@ -788,6 +795,28 @@ export interface components {
         OverlayDocument: {
             revision: string;
             data: components["schemas"]["OverlayData"];
+        };
+        /** @description Slider caption plus optional HTTPS gift image or local image binding. Local paths are never stored. */
+        SliderItem: {
+            id: string;
+            label: string;
+            /** Format: uri */
+            imageUrl?: string;
+            /** Format: uuid */
+            imageBindingId?: string;
+            imageDisplayName?: string;
+        } & (unknown & unknown);
+        TtsAudience: {
+            everyone: boolean;
+            followers: boolean;
+            subscribers: boolean;
+            moderators: boolean;
+            teamMembers: boolean;
+            minTeamLevel: number;
+            gifters: boolean;
+            minGifterLevel: number;
+            topGifters: boolean;
+            topCount: number;
         };
     };
     responses: {

@@ -29,7 +29,7 @@ const color = value => typeof value === 'string' && /^#[a-f0-9]{6}$/i.test(value
 export function defaultWidget(kind) {
   const item=widgetKinds.find(item=>item.id===kind)
   if(!item)throw new TypeError('INVALID_WIDGET_KIND')
-  return {font:'Judy',theme:'plain-white',title:item.name,viewer:'JUDY GAME',accent:'#595959',background:'#FFFFFF',opacity:kind==='slider'?0:100,fontSize:24,value:0,goal:1000,seconds:4975,options:['ร้องเพลง','เต้น','พัก 1 นาที','เล่าเรื่องตลก'],enabled:true,events:['gift','follow','subscribe'],duration:4,minCoins:0,metric:'coins',trigger:'gift',giftId:'*',threshold:1,secondsPerEvent:30,...(kind==='gift-jar'?{showRanking:false,showTotal:true,showRecentGift:false}:{}),...(kind==='slider'?{sliderItems:[],sliderSpeed:45,sliderSize:120,sliderGap:32,sliderWidth:800,sliderDirection:'left',sliderTextColor:'#FFFFFF'}:{})}
+  return {font:'Judy',theme:'plain-white',title:item.name,viewer:'JUDY GAME',accent:'#595959',background:'#FFFFFF',opacity:kind==='slider'?0:100,fontSize:24,value:0,goal:1000,seconds:4975,options:['ร้องเพลง','เต้น','พัก 1 นาที','เล่าเรื่องตลก'],enabled:true,events:['gift','follow','subscribe'],duration:4,minCoins:0,metric:'coins',trigger:'gift',giftId:'*',threshold:1,secondsPerEvent:30,...(kind==='big-gift'?{bigGiftLimit:3}:{}),...(kind==='gift-jar'?{showRanking:false,showTotal:true,showRecentGift:false}:{}),...(kind==='slider'?{sliderItems:[],sliderSpeed:45,sliderSize:120,sliderGap:32,sliderWidth:800,sliderDirection:'left',sliderTextColor:'#FFFFFF'}:{})}
 }
 
 export function safeSpinImage(value) {
@@ -47,7 +47,8 @@ export function validSpinOption(value) {
 }
 export function validWidget(value) {
   try {
-    return exact(value,[...keys,...['showRanking','showTotal','showRecentGift','spinOptions','sliderItems','sliderSpeed','sliderSize','sliderGap','sliderWidth','sliderDirection','sliderTextColor'].filter(key=>Object.hasOwn(value,key))]) && ['showRanking','showTotal','showRecentGift'].every(key=>!Object.hasOwn(value,key)||typeof value[key]==='boolean') && typeof value.font === 'string' && Object.hasOwn(fontOptions,value.font)
+    return exact(value,[...keys,...['bigGiftLimit','showRanking','showTotal','showRecentGift','spinOptions','sliderItems','sliderSpeed','sliderSize','sliderGap','sliderWidth','sliderDirection','sliderTextColor'].filter(key=>Object.hasOwn(value,key))]) && ['showRanking','showTotal','showRecentGift'].every(key=>!Object.hasOwn(value,key)||typeof value[key]==='boolean') && typeof value.font === 'string' && Object.hasOwn(fontOptions,value.font)
+      && (!Object.hasOwn(value,'bigGiftLimit')||integer(value.bigGiftLimit,1,10))
       && (!Object.hasOwn(value,'sliderItems')||array(value.sliderItems,0,20)&&value.sliderItems.every(item=>validSpinOption(item)&&!Object.hasOwn(item,'actionId')&&!Object.hasOwn(item,'weight'))&&new Set(value.sliderItems.map(item=>item.id)).size===value.sliderItems.length)
       && (!Object.hasOwn(value,'sliderSpeed')||integer(value.sliderSpeed,10,200))
       && (!Object.hasOwn(value,'sliderSize')||integer(value.sliderSize,48,240))

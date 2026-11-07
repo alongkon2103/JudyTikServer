@@ -3295,6 +3295,11 @@
           "sliderTextColor": {
             "type": "string",
             "pattern": "^#[a-fA-F0-9]{6}$"
+          },
+          "bigGiftLimit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
           }
         }
       },

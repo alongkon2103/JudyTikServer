@@ -5,6 +5,7 @@ export interface SpinOption {id:string;label:string;imageUrl?:string;imageBindin
 export function safeSpinImage(value:unknown):value is string
 export function validSpinOption(value:unknown):value is SpinOption
 export interface WidgetConfig {
+  bigGiftLimit?: number
   font: string
   theme: string
   title: string
