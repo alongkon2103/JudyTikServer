@@ -1,3 +1,4 @@
+import {validTtsAudience} from './tts-audience.js'
 export const defaultTtsData = () => ({
   version: 1, voiceId: '', speed: 1.2, volume: 80,
   filter: { enabled: true, blockedWords: [] },
@@ -13,6 +14,7 @@ const fields = (value, keys) => value !== null && typeof value === 'object' && !
 const events = ['comment', 'gift', 'follow']
 
 export function validTtsData(value) {
+  if(value&&Object.hasOwn(value,'audience')){if(!validTtsAudience(value.audience))return false;const {audience,...rest}=value;return validTtsData(rest)}
   return (fields(value, ['version', 'voiceId', 'speed', 'volume', 'read', 'templates'])
     || (fields(value, ['version', 'voiceId', 'speed', 'volume', 'read', 'templates', 'filter']) && validTtsFilter(value.filter)))
     && value.version === 1

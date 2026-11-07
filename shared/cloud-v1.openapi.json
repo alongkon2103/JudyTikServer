@@ -159,14 +159,14 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
           "429": {
             "$ref": "#/components/responses/RateLimited"
           },
           "503": {
             "$ref": "#/components/responses/Unavailable"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
           }
         },
         "security": [],
@@ -204,14 +204,14 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
           "429": {
             "$ref": "#/components/responses/RateLimited"
           },
           "503": {
             "$ref": "#/components/responses/Unavailable"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
           }
         },
         "security": [],
@@ -326,12 +326,6 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
-          "429": {
-            "$ref": "#/components/responses/RateLimited"
-          },
-          "503": {
-            "$ref": "#/components/responses/Unavailable"
-          },
           "409": {
             "description": "AUTH_ATTEMPT_ALREADY_CONSUMED: exchange won. Main must log out if credentials were received and the user still wants to cancel; an ambiguous exchange is not proof that a session was revoked.",
             "content": {
@@ -341,6 +335,12 @@
                 }
               }
             }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         },
         "security": [],
@@ -392,14 +392,14 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
           "429": {
             "$ref": "#/components/responses/RateLimited"
           },
           "503": {
             "$ref": "#/components/responses/Unavailable"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
           }
         },
         "security": [],
@@ -430,17 +430,17 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
-          "429": {
-            "$ref": "#/components/responses/RateLimited"
-          },
-          "503": {
-            "$ref": "#/components/responses/Unavailable"
-          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       }
@@ -467,17 +467,17 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
-          "429": {
-            "$ref": "#/components/responses/RateLimited"
-          },
-          "503": {
-            "$ref": "#/components/responses/Unavailable"
-          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       }
@@ -504,17 +504,17 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
-          "429": {
-            "$ref": "#/components/responses/RateLimited"
-          },
-          "503": {
-            "$ref": "#/components/responses/Unavailable"
-          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       }
@@ -555,17 +555,17 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
-          "429": {
-            "$ref": "#/components/responses/RateLimited"
-          },
-          "503": {
-            "$ref": "#/components/responses/Unavailable"
-          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       }
@@ -585,12 +585,6 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
-          "429": {
-            "$ref": "#/components/responses/RateLimited"
-          },
-          "503": {
-            "$ref": "#/components/responses/Unavailable"
-          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
@@ -599,6 +593,12 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         },
         "parameters": [
@@ -630,17 +630,17 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
-          "429": {
-            "$ref": "#/components/responses/RateLimited"
-          },
-          "503": {
-            "$ref": "#/components/responses/Unavailable"
-          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         },
         "requestBody": {
@@ -677,12 +677,6 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
-          "429": {
-            "$ref": "#/components/responses/RateLimited"
-          },
-          "503": {
-            "$ref": "#/components/responses/Unavailable"
-          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
@@ -694,6 +688,12 @@
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         },
         "requestBody": {
@@ -746,17 +746,17 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
-          "429": {
-            "$ref": "#/components/responses/RateLimited"
-          },
-          "503": {
-            "$ref": "#/components/responses/Unavailable"
-          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       },
@@ -792,12 +792,6 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
-          "429": {
-            "$ref": "#/components/responses/RateLimited"
-          },
-          "503": {
-            "$ref": "#/components/responses/Unavailable"
-          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
@@ -809,6 +803,12 @@
           },
           "428": {
             "$ref": "#/components/responses/PreconditionRequired"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         },
         "requestBody": {
@@ -859,12 +859,6 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
-          "429": {
-            "$ref": "#/components/responses/RateLimited"
-          },
-          "503": {
-            "$ref": "#/components/responses/Unavailable"
-          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
@@ -873,6 +867,12 @@
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         },
         "parameters": [
@@ -940,12 +940,6 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
-          "429": {
-            "$ref": "#/components/responses/RateLimited"
-          },
-          "503": {
-            "$ref": "#/components/responses/Unavailable"
-          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
@@ -954,6 +948,12 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         },
         "parameters": [
@@ -1015,12 +1015,6 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
-          "429": {
-            "$ref": "#/components/responses/RateLimited"
-          },
-          "503": {
-            "$ref": "#/components/responses/Unavailable"
-          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
@@ -1036,11 +1030,17 @@
           "412": {
             "$ref": "#/components/responses/PreconditionFailed"
           },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          },
           "428": {
             "$ref": "#/components/responses/PreconditionRequired"
           },
-          "413": {
-            "$ref": "#/components/responses/TooLarge"
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         },
         "requestBody": {
@@ -1084,12 +1084,6 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
-          "429": {
-            "$ref": "#/components/responses/RateLimited"
-          },
-          "503": {
-            "$ref": "#/components/responses/Unavailable"
-          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
@@ -1104,6 +1098,12 @@
           },
           "428": {
             "$ref": "#/components/responses/PreconditionRequired"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         },
         "parameters": [
@@ -3051,6 +3051,9 @@
                 }
               }
             }
+          },
+          "audience": {
+            "$ref": "#/components/schemas/TtsAudience"
           }
         }
       },
@@ -3254,6 +3257,44 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 3600
+          },
+          "sliderItems": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "$ref": "#/components/schemas/SliderItem"
+            }
+          },
+          "sliderSpeed": {
+            "type": "integer",
+            "minimum": 10,
+            "maximum": 200
+          },
+          "sliderSize": {
+            "type": "integer",
+            "minimum": 48,
+            "maximum": 240
+          },
+          "sliderGap": {
+            "type": "integer",
+            "minimum": 8,
+            "maximum": 96
+          },
+          "sliderWidth": {
+            "type": "integer",
+            "minimum": 240,
+            "maximum": 1920
+          },
+          "sliderDirection": {
+            "type": "string",
+            "enum": [
+              "left",
+              "right"
+            ]
+          },
+          "sliderTextColor": {
+            "type": "string",
+            "pattern": "^#[a-fA-F0-9]{6}$"
           }
         }
       },
@@ -3313,7 +3354,11 @@
                         "type": "string",
                         "enum": [
                           "plain-white",
-                          "plain-black"
+                          "plain-black",
+                          "crystal-reverie",
+                          "mochi-pals",
+                          "enchanted-grove",
+                          "midnight-grimoire"
                         ]
                       }
                     }
@@ -3324,6 +3369,9 @@
                 "$ref": "#/components/schemas/OverlayWidget"
               },
               "video": {
+                "$ref": "#/components/schemas/OverlayWidget"
+              },
+              "slider": {
                 "$ref": "#/components/schemas/OverlayWidget"
               }
             }
@@ -3344,6 +3392,128 @@
           },
           "data": {
             "$ref": "#/components/schemas/OverlayData"
+          }
+        }
+      },
+      "SliderItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "label"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "pattern": "^(?=.*\\S)[^\\x00-\\x1f\\x7f-\\x9f\\u061c\\u200e\\u200f\\u202a-\\u202e\\u2066-\\u2069]+$"
+          },
+          "imageUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "pattern": "^https://"
+          },
+          "imageBindingId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "imageDisplayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "pattern": "^[^\\\\/\\x00-\\x1f\\x7f-\\x9f]+$"
+          }
+        },
+        "description": "Slider caption plus optional HTTPS gift image or local image binding. Local paths are never stored.",
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "imageBindingId"
+              ]
+            },
+            "then": {
+              "required": [
+                "imageDisplayName"
+              ],
+              "not": {
+                "required": [
+                  "imageUrl"
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "imageDisplayName"
+              ]
+            },
+            "then": {
+              "required": [
+                "imageBindingId"
+              ]
+            }
+          }
+        ]
+      },
+      "TtsAudience": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "everyone",
+          "followers",
+          "subscribers",
+          "moderators",
+          "teamMembers",
+          "minTeamLevel",
+          "gifters",
+          "minGifterLevel",
+          "topGifters",
+          "topCount"
+        ],
+        "properties": {
+          "everyone": {
+            "type": "boolean"
+          },
+          "followers": {
+            "type": "boolean"
+          },
+          "subscribers": {
+            "type": "boolean"
+          },
+          "moderators": {
+            "type": "boolean"
+          },
+          "teamMembers": {
+            "type": "boolean"
+          },
+          "minTeamLevel": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "gifters": {
+            "type": "boolean"
+          },
+          "minGifterLevel": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "topGifters": {
+            "type": "boolean"
+          },
+          "topCount": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
           }
         }
       }
