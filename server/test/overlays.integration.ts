@@ -27,7 +27,7 @@ const document = () => {
   return data
 }
 const call = (user: Account, options: RequestInit = {}) => fetch(base + '/v1/me/overlays', {
-  ...options, headers: { 'content-type': 'application/json', 'x-judytik-overlay-features': 'slider,spin-weights,slider-item-colors,big-gift-ranking', authorization: 'Bearer ' + user.tokens.access_token, ...options.headers },
+  ...options, headers: { 'content-type': 'application/json', 'x-judytik-overlay-features': 'slider,spin-weights,slider-item-colors,big-gift-ranking,top-likers-limit', authorization: 'Bearer ' + user.tokens.access_token, ...options.headers },
 })
 const save = (user: Account, body: unknown, revision = '0', requestId = randomUUID()) => call(user, {
   method: 'PUT', headers: { 'if-match': '"' + revision + '"', 'x-request-id': requestId }, body: JSON.stringify(body),
@@ -151,4 +151,10 @@ test('OVERLAYS refuses to return a stored document that fails its settings contr
   const response = await call(a)
   assert.equal(response.status, 500)
   assert.equal((await response.json()).error.code, 'OVERLAY_DATA_INVALID')
+})
+
+test('Top Likers limits persist across HTTP save, legacy projections and old-client edits',async()=>{
+ const a=await h.signIn(),data=document();data.widgets['top-likers'].likerLimit=5;let response=await save(a,data);assert.equal(response.status,200);let doc=await response.json();assert.equal(doc.data.widgets['top-likers'].likerLimit,5)
+ const old=await (await call(a,{headers:{'x-judytik-overlay-features':'slider,spin-weights,slider-item-colors,big-gift-ranking'}})).json();assert(!Object.hasOwn(old.data.widgets['top-likers'],'likerLimit'));old.data.widgets.alert.title='Older client edit';response=await save(a,old.data,old.revision);assert.equal(response.status,200);doc=await response.json();assert.equal(doc.data.widgets['top-likers'].likerLimit,5)
+ doc.data.widgets['top-likers'].likerLimit=10;response=await save(a,doc.data,doc.revision);assert.equal(response.status,200);doc=await response.json();assert.equal(doc.data.widgets['top-likers'].likerLimit,10);const bad=structuredClone(doc.data);bad.widgets['top-likers'].likerLimit=7;assert.equal((await save(a,bad,doc.revision)).status,400)
 })

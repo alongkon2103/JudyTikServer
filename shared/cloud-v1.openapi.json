@@ -3300,6 +3300,14 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 10
+          },
+          "likerLimit": {
+            "type": "integer",
+            "enum": [
+              5,
+              10
+            ],
+            "description": "Top Likers rows; omitted legacy setting displays Top 10."
           }
         }
       },

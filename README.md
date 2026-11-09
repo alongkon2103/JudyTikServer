@@ -134,3 +134,7 @@ See [server/ACCOUNT_LINKING.md](server/ACCOUNT_LINKING.md) for verified-email li
 ## Connected LIVE directory
 
 Desktop reports actual TikTok LIVE connections using session-scoped 30-second heartbeats and 90-second leases. The authenticated directory contains only public channel details, deduplicates channels, and excludes expired/revoked sessions and merged/disabled accounts. No extra TikTok/Euler requests or plan enforcement. Apply all Prisma migrations and runtime grants before restarting. See [Thai LIVE directory API](docs/LIVE_DIRECTORY_API.th.md).
+
+## จำนวนอันดับ Top Likers
+
+Desktop เลือก Top 5 / Top 10 ได้ผ่าน widgets["top-likers"].likerLimit (5 หรือ 10 เท่านั้น; ค่าที่ไม่ได้ระบุใช้ Top 10) โดยส่ง X-JudyTik-Overlay-Features: top-likers-limit ร่วมกับ capabilities เดิม API ซ่อน field นี้จากไคลเอนต์เก่า และเก็บค่าที่ตั้งไว้เมื่อไคลเอนต์เก่าบันทึกโดยไม่ได้ส่ง field นี้ รอบนี้ไม่ต้อง migration หรือ grants เพิ่ม ให้ pull, npm --prefix server run build และ pm2 restart judytik-backend --update-env ตามปกติ

@@ -6,6 +6,7 @@ export function safeSpinImage(value:unknown):value is string
 export function validSpinOption(value:unknown):value is SpinOption
 export interface WidgetConfig {
   bigGiftLimit?: number
+  likerLimit?: 5 | 10
   font: string
   theme: string
   title: string

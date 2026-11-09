@@ -40,6 +40,7 @@ export class OverlaysService {
         if (!Object.hasOwn(input.widgets, kind) && current && validOverlayData(current.data))
           data.widgets[kind] = hydrateOverlayData(current.data).widgets[kind]
       if(!Object.hasOwn(input.widgets['big-gift'],'bigGiftLimit')&&current&&validOverlayData(current.data)&&current.data.widgets['big-gift'].bigGiftLimit!==undefined)data.widgets['big-gift'].bigGiftLimit=current.data.widgets['big-gift'].bigGiftLimit
+      if(!Object.hasOwn(input.widgets['top-likers'],'likerLimit')&&current&&validOverlayData(current.data)&&current.data.widgets['top-likers'].likerLimit!==undefined)data.widgets['top-likers'].likerLimit=current.data.widgets['top-likers'].likerLimit
       const row = current
         ? await tx.overlaysWorkspace.update({ where: { userId: actor.userId }, data: { data, revision: { increment: 1 } } })
         : await tx.overlaysWorkspace.create({ data: { userId: actor.userId, data } })

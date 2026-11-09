@@ -11,6 +11,7 @@ export class OverlaysController {
 
   private response(value: Awaited<ReturnType<OverlaysService['get']>>, req: SessionRequest, body?: unknown) {
     const features=String(req.headers['x-judytik-overlay-features']??'').split(',')
+    if(!features.includes('top-likers-limit')){value=structuredClone(value);delete value.data.widgets['top-likers'].likerLimit}
     if(!features.includes('big-gift-ranking')){value=structuredClone(value);delete value.data.widgets['big-gift'].bigGiftLimit}
     if(!features.includes('spin-weights')){
       value=structuredClone(value)

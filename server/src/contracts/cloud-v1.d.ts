@@ -772,6 +772,11 @@ export interface components {
             sliderDirection?: "left" | "right";
             sliderTextColor?: string;
             bigGiftLimit?: number;
+            /**
+             * @description Top Likers rows; omitted legacy setting displays Top 10.
+             * @enum {integer}
+             */
+            likerLimit?: 5 | 10;
         };
         OverlayData: {
             /** @constant */
