@@ -9,4 +9,10 @@ test('multipart OpenAPI requires only real required inputs and recursive respons
  const ajv=new Ajv2020({strict:false});addFormats.default(ajv);
  ajv.addSchema({$id:'urn:judytik:games',components:api.components});
  const check=ajv.getSchema('urn:judytik:games#/components/schemas/GameFileImportResult');assert(check);
+ assert.deepEqual([...api.components.schemas.GamePresetFileCreate.required].sort(),['presetFile','slug']);
+ assert.deepEqual(api.components.schemas.GamePresetFileReplace.required,['presetFile']);
+ assert.deepEqual(api.components.schemas.GameCoverReplace.required,['coverFile']);
+ assert.equal(api.components.schemas.GameCoverReplace.properties.coverFile?.format,'binary');
+ for(const name of ['GamePresetFileCreate','GamePresetFileReplace'])assert.equal(api.components.schemas[name].properties.presetFile?.format,'binary');
+ assert(api.paths['/admin/games/{id}/cover'].put.parameters.some((p:any)=>p.name==='If-Match'));
 });

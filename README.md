@@ -4,6 +4,8 @@ Backend แยกสำหรับ JudyTik: NestJS / Node.js 24 / Prisma 7 / Po
 
 ## นำเข้าพรีเซตเกมพร้อมรูปปกผ่าน Admin API
 
+รองรับดูรายการ/รายละเอียด แก้ JSON และ archive ผ่าน Admin CRUD เดิม พร้อมเพิ่ม `POST /admin/games/:id/presets/import`, `PUT /admin/games/:id/presets/:presetId/file` และ `PUT /admin/games/:id/cover` สำหรับเพิ่มชุดจากไฟล์ แทนไฟล์เดิมและเปลี่ยนรูป ใช้ If-Match ของรายการที่แก้ เก็บ ID และประวัติเดิมไว้ ต้องรัน db:grants ใหม่เพื่อให้สิทธิ์ UPDATE(data) รูปปก Public API ยังแสดงเฉพาะ published ไม่มีการล็อกสิทธิ์ซื้อเกม
+
 `POST /v1/admin/games/import` รับ multipart form-data: `presetFile` ที่ export จาก JudyTik, `coverFile`, `slug`, `name` และค่าประกอบ เช่น `description` / `status` ใช้ Admin key เดิม สร้างเกม รูป พรีเซต เวอร์ชันและ audit ใน transaction เดียว ค่าเริ่มต้นเป็น draft ยังไม่ล็อกสิทธิ์ซื้อเกม
 
 ดู [เอกสารภาษาไทยพร้อมคำสั่ง deploy](docs/ADMIN_GAME_PRESETS_API.th.md), [OpenAPI](server/openapi.json) และ [Postman Games](server/postman/JudyTik-Admin-Games.postman_collection.json) รุ่นนี้เพิ่ม Sharp และตาราง `game_covers`: ติดตั้ง dependencies, generate Prisma, migrate และ grants ก่อนเริ่ม Backend

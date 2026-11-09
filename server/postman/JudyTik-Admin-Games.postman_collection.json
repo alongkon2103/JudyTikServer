@@ -2,69 +2,531 @@
   "info": {
     "_postman_id": "cbfa8d67-abac-46b3-9f1a-4707012905af",
     "name": "JudyTik - Admin Games",
-    "description": "นำเข้าพรีเซตจาก JudyTik พร้อมรูปปก ชื่อเกม คำอธิบายและ slug เลือกไฟล์จริงใน Body และเปลี่ยน slug ก่อนส่ง ค่าเริ่มต้นเป็น draft ยังไม่มีการล็อกสิทธิ์ซื้อเกม ดู docs/ADMIN_GAME_PRESETS_API.th.md",
+    "description": "Admin จัดการเกมและพรีเซต: รายการ/รายละเอียด นำเข้า แก้ข้อมูล เปลี่ยนรูป แทนไฟล์ เพิ่มชุดย่อย archive และประวัติ ยังไม่ล็อกสิทธิ์ซื้อเกม ดู docs/ADMIN_GAME_PRESETS_API.th.md เรียก GET ล่าสุดก่อน PUT/DELETE",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminApiKey}}", "type": "string" }] },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{adminApiKey}}",
+        "type": "string"
+      }
+    ]
+  },
   "variable": [
-    { "key": "gameId", "value": "" },
-    { "key": "presetId", "value": "" },
-    { "key": "gameRevision", "value": "" },
-    { "key": "presetRevision", "value": "" }
+    {
+      "key": "gameId",
+      "value": ""
+    },
+    {
+      "key": "presetId",
+      "value": ""
+    },
+    {
+      "key": "gameRevision",
+      "value": ""
+    },
+    {
+      "key": "presetRevision",
+      "value": ""
+    },
+    {
+      "key": "gameWriteBody",
+      "value": "{}"
+    },
+    {
+      "key": "presetWriteBody",
+      "value": "{}"
+    },
+    {
+      "key": "extraPresetId",
+      "value": ""
+    }
   ],
   "item": [
     {
       "name": "00 - List admin games",
-      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/admin/games?page=1&pageSize=25" }
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/admin/games?page=1&pageSize=25"
+      }
     },
     {
       "name": "01 - Import native preset and cover",
       "request": {
-        "method": "POST", "header": [], "url": "{{baseUrl}}/admin/games/import",
+        "method": "POST",
+        "header": [],
+        "url": "{{baseUrl}}/admin/games/import",
         "body": {
           "mode": "formdata",
           "formdata": [
-            { "key": "slug", "value": "my-new-game", "type": "text" },
-            { "key": "name", "value": "เกมใหม่ของฉัน", "type": "text" },
-            { "key": "description", "value": "พรีเซตจาก JudyTik", "type": "text" },
-            { "key": "status", "value": "draft", "type": "text" },
-            { "key": "platform", "value": "pc", "type": "text" },
-            { "key": "presetFile", "type": "file", "src": [], "description": "เลือก .judytik.json ที่ export จาก JudyTik ไม่เกิน 1 MiB" },
-            { "key": "coverFile", "type": "file", "src": [], "description": "เลือกภาพนิ่ง PNG/JPEG/WebP ไม่เกิน 2 MiB" }
+            {
+              "key": "slug",
+              "value": "my-new-game",
+              "type": "text"
+            },
+            {
+              "key": "name",
+              "value": "เกมใหม่ของฉัน",
+              "type": "text"
+            },
+            {
+              "key": "description",
+              "value": "พรีเซตจาก JudyTik",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "value": "draft",
+              "type": "text"
+            },
+            {
+              "key": "platform",
+              "value": "pc",
+              "type": "text"
+            },
+            {
+              "key": "presetFile",
+              "type": "file",
+              "src": [],
+              "description": "เลือก .judytik.json ที่ export จาก JudyTik ไม่เกิน 1 MiB"
+            },
+            {
+              "key": "coverFile",
+              "type": "file",
+              "src": [],
+              "description": "เลือกภาพนิ่ง PNG/JPEG/WebP ไม่เกิน 2 MiB"
+            }
           ]
         }
       },
-      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "pm.test('Created', () => pm.response.to.have.status(201));",
-        "if (pm.response.code === 201) {",
-        "  const result = pm.response.json();",
-        "  pm.collectionVariables.set('gameId', result.game.id);",
-        "  pm.collectionVariables.set('presetId', result.preset.id);",
-        "  pm.collectionVariables.set('gameRevision', result.game.revision);",
-        "  pm.collectionVariables.set('presetRevision', result.preset.revision);",
-        "  pm.test('Native preset', () => pm.expect(result.preset.format).to.eql('action-preset-v1'));",
-        "}"
-      ] } }]
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Created', () => pm.response.to.have.status(201));",
+              "if (pm.response.code === 201) {",
+              "  const result = pm.response.json();",
+              "  pm.collectionVariables.set('gameId', result.game.id);",
+              "  pm.collectionVariables.set('presetId', result.preset.id);",
+              "  pm.collectionVariables.set('gameRevision', result.game.revision);",
+              "  pm.collectionVariables.set('presetRevision', result.preset.revision);",
+              "  pm.test('Native preset', () => pm.expect(result.preset.format).to.eql('action-preset-v1'));",
+              "}"
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "02 - Get imported game",
-      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/admin/games/{{gameId}}" }
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/admin/games/{{gameId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('สำเร็จ', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+              "if (pm.response.code === 200 || pm.response.code === 201) {",
+              "  const body = pm.response.json();",
+              "  const value = body.game || body;",
+              "  pm.collectionVariables.set('gameId', value.id);",
+              "  pm.collectionVariables.set('gameRevision', value.revision);",
+              "  const fields = [\"slug\",\"name\",\"description\",\"categoryId\",\"platform\",\"coverUrl\",\"url\",\"status\",\"sortOrder\",\"metadata\"];",
+              "  pm.collectionVariables.set('gameWriteBody', JSON.stringify(Object.fromEntries(fields.map(k => [k, value[k]])), null, 2));",
+              "}"
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "03 - List imported presets",
-      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/admin/games/{{gameId}}/presets" }
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/admin/games/{{gameId}}/presets"
+      }
     },
     {
       "name": "04 - Admin cover preview (draft allowed)",
-      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/admin/games/{{gameId}}/cover" }
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/admin/games/{{gameId}}/cover"
+      }
     },
     {
       "name": "05 - Preset version history",
-      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/admin/games/{{gameId}}/presets/{{presetId}}/versions" }
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/admin/games/{{gameId}}/presets/{{presetId}}/versions"
+      }
     },
     {
       "name": "06 - Public cover (404 until published)",
-      "request": { "method": "GET", "auth": { "type": "noauth" }, "header": [], "url": "{{baseUrl}}/games/{{gameId}}/cover" }
+      "request": {
+        "method": "GET",
+        "auth": {
+          "type": "noauth"
+        },
+        "header": [],
+        "url": "{{baseUrl}}/games/{{gameId}}/cover"
+      }
+    },
+    {
+      "name": "07 - Get selected preset",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/admin/games/{{gameId}}/presets/{{presetId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('สำเร็จ', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+              "if (pm.response.code === 200 || pm.response.code === 201) {",
+              "  const body = pm.response.json();",
+              "  const value = body.preset || body;",
+              "  pm.collectionVariables.set('presetId', value.id);",
+              "  pm.collectionVariables.set('presetRevision', value.revision);",
+              "  const fields = [\"slug\",\"name\",\"description\",\"format\",\"payload\",\"isDefault\",\"status\"];",
+              "  pm.collectionVariables.set('presetWriteBody', JSON.stringify(Object.fromEntries(fields.map(k => [k, value[k]])), null, 2));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - Edit game metadata JSON",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "If-Match",
+            "value": "\"{{gameRevision}}\""
+          }
+        ],
+        "url": "{{baseUrl}}/admin/games/{{gameId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{{gameWriteBody}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "เรียก GET ล่าสุดก่อน แก้ Collection Variables > gameWriteBody แล้วส่ง PUT จะเก็บค่าที่ไม่แก้ไว้"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('สำเร็จ', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+              "if (pm.response.code === 200 || pm.response.code === 201) {",
+              "  const body = pm.response.json();",
+              "  const value = body.game || body;",
+              "  pm.collectionVariables.set('gameId', value.id);",
+              "  pm.collectionVariables.set('gameRevision', value.revision);",
+              "  const fields = [\"slug\",\"name\",\"description\",\"categoryId\",\"platform\",\"coverUrl\",\"url\",\"status\",\"sortOrder\",\"metadata\"];",
+              "  pm.collectionVariables.set('gameWriteBody', JSON.stringify(Object.fromEntries(fields.map(k => [k, value[k]])), null, 2));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 - Replace uploaded cover",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "If-Match",
+            "value": "\"{{gameRevision}}\""
+          }
+        ],
+        "url": "{{baseUrl}}/admin/games/{{gameId}}/cover",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "coverFile",
+              "type": "file",
+              "src": [],
+              "description": "เลือกไฟล์ใหม่ก่อนส่ง"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('สำเร็จ', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+              "if (pm.response.code === 200 || pm.response.code === 201) {",
+              "  const body = pm.response.json();",
+              "  const value = body.game || body;",
+              "  pm.collectionVariables.set('gameId', value.id);",
+              "  pm.collectionVariables.set('gameRevision', value.revision);",
+              "  const fields = [\"slug\",\"name\",\"description\",\"categoryId\",\"platform\",\"coverUrl\",\"url\",\"status\",\"sortOrder\",\"metadata\"];",
+              "  pm.collectionVariables.set('gameWriteBody', JSON.stringify(Object.fromEntries(fields.map(k => [k, value[k]])), null, 2));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 - Add another native preset to game",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": "{{baseUrl}}/admin/games/{{gameId}}/presets/import",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "slug",
+              "value": "secondary",
+              "type": "text"
+            },
+            {
+              "key": "presetName",
+              "value": "ชุดเสริม",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "value": "draft",
+              "type": "text"
+            },
+            {
+              "key": "isDefault",
+              "value": "false",
+              "type": "text"
+            },
+            {
+              "key": "presetFile",
+              "type": "file",
+              "src": []
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Created', () => pm.response.to.have.status(201));",
+              "if (pm.response.code === 201) pm.collectionVariables.set('extraPresetId', pm.response.json().preset.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 - Replace selected preset file (keep ID)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "If-Match",
+            "value": "\"{{presetRevision}}\""
+          }
+        ],
+        "url": "{{baseUrl}}/admin/games/{{gameId}}/presets/{{presetId}}/file",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "presetFile",
+              "type": "file",
+              "src": [],
+              "description": "เลือกไฟล์ใหม่ก่อนส่ง"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('สำเร็จ', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+              "if (pm.response.code === 200 || pm.response.code === 201) {",
+              "  const body = pm.response.json();",
+              "  const value = body.preset || body;",
+              "  pm.collectionVariables.set('presetId', value.id);",
+              "  pm.collectionVariables.set('presetRevision', value.revision);",
+              "  const fields = [\"slug\",\"name\",\"description\",\"format\",\"payload\",\"isDefault\",\"status\"];",
+              "  pm.collectionVariables.set('presetWriteBody', JSON.stringify(Object.fromEntries(fields.map(k => [k, value[k]])), null, 2));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 - Edit preset metadata JSON",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "If-Match",
+            "value": "\"{{presetRevision}}\""
+          }
+        ],
+        "url": "{{baseUrl}}/admin/games/{{gameId}}/presets/{{presetId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{{presetWriteBody}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "เรียก GET ล่าสุดก่อน แก้ Collection Variables > presetWriteBody แล้วส่ง PUT จะเก็บค่าที่ไม่แก้ไว้"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('สำเร็จ', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+              "if (pm.response.code === 200 || pm.response.code === 201) {",
+              "  const body = pm.response.json();",
+              "  const value = body.preset || body;",
+              "  pm.collectionVariables.set('presetId', value.id);",
+              "  pm.collectionVariables.set('presetRevision', value.revision);",
+              "  const fields = [\"slug\",\"name\",\"description\",\"format\",\"payload\",\"isDefault\",\"status\"];",
+              "  pm.collectionVariables.set('presetWriteBody', JSON.stringify(Object.fromEntries(fields.map(k => [k, value[k]])), null, 2));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 - Archive selected preset (retains history)",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "If-Match",
+            "value": "\"{{presetRevision}}\""
+          }
+        ],
+        "url": "{{baseUrl}}/admin/games/{{gameId}}/presets/{{presetId}}",
+        "description": "Archive เก็บข้อมูลและประวัติไว้ ต้องใช้ revision ล่าสุด"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('สำเร็จ', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+              "if (pm.response.code === 200 || pm.response.code === 201) {",
+              "  const body = pm.response.json();",
+              "  const value = body.preset || body;",
+              "  pm.collectionVariables.set('presetId', value.id);",
+              "  pm.collectionVariables.set('presetRevision', value.revision);",
+              "  const fields = [\"slug\",\"name\",\"description\",\"format\",\"payload\",\"isDefault\",\"status\"];",
+              "  pm.collectionVariables.set('presetWriteBody', JSON.stringify(Object.fromEntries(fields.map(k => [k, value[k]])), null, 2));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 - Archive game (retains data)",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "If-Match",
+            "value": "\"{{gameRevision}}\""
+          }
+        ],
+        "url": "{{baseUrl}}/admin/games/{{gameId}}",
+        "description": "Archive เก็บข้อมูลและประวัติไว้ ต้องใช้ revision ล่าสุด"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('สำเร็จ', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+              "if (pm.response.code === 200 || pm.response.code === 201) {",
+              "  const body = pm.response.json();",
+              "  const value = body.game || body;",
+              "  pm.collectionVariables.set('gameId', value.id);",
+              "  pm.collectionVariables.set('gameRevision', value.revision);",
+              "  const fields = [\"slug\",\"name\",\"description\",\"categoryId\",\"platform\",\"coverUrl\",\"url\",\"status\",\"sortOrder\",\"metadata\"];",
+              "  pm.collectionVariables.set('gameWriteBody', JSON.stringify(Object.fromEntries(fields.map(k => [k, value[k]])), null, 2));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 - Public published games",
+      "request": {
+        "method": "GET",
+        "auth": {
+          "type": "noauth"
+        },
+        "header": [],
+        "url": "{{baseUrl}}/games?page=1&pageSize=25"
+      }
+    },
+    {
+      "name": "16 - Public published presets",
+      "request": {
+        "method": "GET",
+        "auth": {
+          "type": "noauth"
+        },
+        "header": [],
+        "url": "{{baseUrl}}/games/{{gameId}}/presets?page=1&pageSize=25"
+      }
     }
   ]
 }

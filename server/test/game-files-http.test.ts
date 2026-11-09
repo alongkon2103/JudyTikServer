@@ -15,7 +15,7 @@ const file=readFileSync(new URL('./fixtures/native-export.judytik.json',import.m
 let image:Buffer,app:NestExpressApplication,base:string;
 before(async()=>{
  image=await sharp({create:{width:80,height:40,channels:4,background:'#dc1684'}}).png().toBuffer();
- const m=await Test.createTestingModule({controllers:[GameFilesController],providers:[AdminGuard,{provide:CONFIG,useValue:{adminApiKey:key,apiOrigin:'https://api.example.invalid'}},{provide:GamesService,useValue:{async importFile(...args:any[]){calls.push(args);return {game:{id:'example',revision:'1'},preset:{revision:'1'},warnings:[]};}}}]}).compile();
+ const m=await Test.createTestingModule({controllers:[GameFilesController],providers:[AdminGuard,{provide:CONFIG,useValue:{adminApiKey:key,apiOrigin:'https://api.example.invalid'}},{provide:GamesService,useValue:{async importFile(...args:any[]){calls.push(args);return {game:{id:'example',revision:'1'},preset:{revision:'1'},warnings:[]};},async save(...args:any[]){calls.push(args);return {id:'preset',revision:'1'};},async replacePresetFile(...args:any[]){calls.push(args);return {preset:{id:'preset',revision:'2'},warnings:[]};},async replaceCover(...args:any[]){calls.push(args);return {id:'game',revision:'2'};}}}]}).compile();
  app=configureApp(m.createNestApplication<NestExpressApplication>({logger:false}));await app.listen(0,'127.0.0.1');base=await app.getUrl();
 });
 after(async()=>app?.close());
@@ -43,5 +43,21 @@ test('rejects missing, extra, malformed and oversized file parts without saving'
  for(const [f,status,code] of cases){const r=await send(f);assert.equal(r.status,status);assert.equal((await r.json()).error.code,code);}
  const extra=form();extra.append('otherFile',new Blob(['x']),'other.txt');assert.equal((await send(extra)).status,400);
  const duplicate=form();duplicate.append('slug','different');assert.equal((await send(duplicate)).status,400);
+ assert.equal(calls.length,count);
+});
+test('native file management routes accept only their file and text fields and preserve If-Match',async()=>{
+ const id='94108cc8-288f-4874-94dd-a774c28781cc',presetId='5c10d232-9dce-427c-a26e-46382d37f160';
+ const request=(path:string,method:string,body:FormData,auth=true)=>fetch(base+'/v1/admin/games/'+id+path,{method,headers:{...(auth?{authorization:'Bearer '+key}:{}),'if-match':'"1"'},body});
+ const coverOnly=()=>form({},null,image),presetOnly=(fields:Record<string,string>={})=>form(fields,file,null);
+ assert.equal((await request('/cover','PUT',coverOnly(),false)).status,401);
+ assert.equal((await request('/presets/import','POST',presetOnly({slug:'extra'}),false)).status,401);
+ assert.equal((await request('/presets/'+presetId+'/file','PUT',presetOnly(),false)).status,401);
+ let r=await request('/cover','PUT',coverOnly());assert.equal(r.status,200);assert.equal(r.headers.get('etag'),'"2"');assert.equal(calls.at(-1)[2],'"1"');
+ r=await request('/presets/import','POST',presetOnly({slug:'extra',status:'published',isDefault:'true'}));assert.equal(r.status,201);assert.equal(calls.at(-1)[2].isDefault,true);assert.equal(calls.at(-1)[2].slug,'extra');
+ r=await request('/presets/'+presetId+'/file','PUT',presetOnly());assert.equal(r.status,200);assert.equal(r.headers.get('etag'),'"2"');assert.equal(calls.at(-1)[4],'"1"');
+ const count=calls.length;
+ assert.equal((await request('/cover','PUT',form())).status,400);
+ assert.equal((await request('/presets/import','POST',presetOnly({slug:'extra',isDefault:'yes'}))).status,400);
+ assert.equal((await request('/presets/'+presetId+'/file','PUT',presetOnly({status:'published'}))).status,400);
  assert.equal(calls.length,count);
 });

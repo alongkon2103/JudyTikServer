@@ -9,7 +9,7 @@ import { ApiError } from '../http/api-error.js';
 import { validatePreset } from '../presets/contracts.js';
 import { PresetsService } from '../presets/service.js';
 import { categoryWrite, gameWrite, presetWrite, gamePresetImport, listQuery, pageQuery, reorderWrite, parse, uuid, matchRevision } from './contracts.js';
-import {gameFileFields} from './files.js';
+import {gameFileFields,presetFileWarnings} from './files.js';
 import type {z} from 'zod';
 type Kind = 'category' | 'game' | 'preset';
 function dto<T>(value: T): any { return JSON.parse(JSON.stringify(value, (_key, v) => typeof v === 'bigint' ? v.toString() : v)); }
@@ -29,8 +29,7 @@ export class GamesService {
     }
     async importFile(fields:z.infer<typeof gameFileFields>,payload:ReturnType<typeof validatePreset>,cover:Buffer,origin:string,requestId:string) {
         const {presetName,...gameFields}=fields;
-        const warnings=payload.actions.some(rule=>rule.effects.some(effect=>'media' in effect))
-            ? ['พรีเซตอ้างถึงไฟล์เสียงหรือวิดีโอบนเครื่องเดิม ไฟล์ export ไม่ได้แนบสื่อมาด้วย ผู้ใช้ต้องเลือกไฟล์ใหม่หลังนำเข้า'] : [];
+        const warnings=presetFileWarnings(payload);
         return this.locked(async tx=>{
             if(gameFields.categoryId) {
                 const category=await tx.gameCategory.findUnique({where:{id:gameFields.categoryId}});
@@ -44,6 +43,24 @@ export class GamesService {
             await this.audit(tx,'game',id,game.revision,requestId,'created');
             await this.audit(tx,'preset',preset.id,preset.revision,requestId,'created');
             return {game:dto(game),preset:dto(preset),warnings};
+        });
+    }
+    async replacePresetFile(gameId:string,id:string,payload:ReturnType<typeof validatePreset>,presetName:string|undefined,match:unknown,requestId:string){
+        const revision=matchRevision(match),current=await this.preset(gameId,id,true);
+        if(BigInt(current.revision)!==revision)throw new ApiError(412,'GAME_VERSION_CONFLICT');
+        // save() checks the same revision again under the catalogue transaction lock.
+        const preset=await this.save('preset',id,{slug:current.slug,name:presetName??current.name,description:current.description,format:'action-preset-v1',payload,status:current.status,isDefault:current.isDefault},match,requestId,gameId);
+        return {preset,warnings:presetFileWarnings(payload)};
+    }
+    async replaceCover(id:string,cover:Buffer,match:unknown,origin:string,requestId:string){
+        uuid(id);const revision=matchRevision(match);
+        return this.locked(async tx=>{
+            const current=await tx.game.findUnique({where:{id}});
+            if(!current)throw new ApiError(404,'GAME_NOT_FOUND');
+            if(current.revision!==revision)throw new ApiError(412,'GAME_VERSION_CONFLICT');
+            await tx.gameCover.upsert({where:{gameId:id},create:{gameId:id,data:new Uint8Array(cover)},update:{data:new Uint8Array(cover)}});
+            const row=await tx.game.update({where:{id},data:{coverUrl:new URL(`/v1/games/${id}/cover`,origin).href,revision:{increment:1}}});
+            await this.audit(tx,'game',id,row.revision,requestId,'updated');return dto(row);
         });
     }
     async categories(admin = false) { return { items: dto(await this.db.client.gameCategory.findMany({ where: admin ? {} : { status: 'active' }, orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] })) }; }

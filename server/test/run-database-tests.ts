@@ -181,6 +181,7 @@ try {
       'test/gifts.integration.ts',
       'test/games.integration.ts',
       'test/game-files.integration.ts',
+      'test/game-management.integration.ts',
       'test/auth.integration.ts',
       'test/accounts.integration.ts',
       'test/account-linking.integration.ts',

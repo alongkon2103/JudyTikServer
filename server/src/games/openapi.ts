@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { categoryWrite, gameWrite, presetWrite, reorderWrite, gamePresetImport } from './contracts.js';
-import {gameFileFields} from './files.js';
+import {gameFileFields,presetFileFields,presetReplacementFields} from './files.js';
 export function addGamesOpenApi(doc: any) {
     const json = (s:z.ZodType,name:string,input=false) => {
         const {$schema,...value}=z.toJSONSchema(s,{io:input?'input':'output'});
@@ -57,8 +57,17 @@ export function addGamesOpenApi(doc: any) {
         coverFile:{type:'string',format:'binary',description:'Static PNG, JPEG or WebP; maximum 2 MiB and 16 megapixels. Normalized to WebP, at most 1600 x 1600 and 1 MiB.'}}};
     doc.components.schemas.GameFileImportResult = {type:'object',additionalProperties:false,required:['game','preset','warnings'],properties:{game:ref('Game'),preset:ref('GamePreset'),warnings:{type:'array',items:{type:'string'}}}};
     doc.paths['/admin/games/import']={post:{...operation('adminImportJudyTikGameFile',ref('GameFileImportResult'),[],true,undefined,true),description:'Atomically creates a new game, uploaded cover, native preset, version and audit records. Draft by default; published creates a published default preset. Duplicate slug returns 409 without overwriting. Does not enforce purchase rights. Exported local media references are preserved with a warning; sound/video bytes are not included.',requestBody:{required:true,content:{'multipart/form-data':{schema:ref('GameFileImport')}}}}};
+    const withFile=(schema:any,key:string)=>({...schema,required:[...(schema.required??[]),key],properties:{...schema.properties,[key]:doc.components.schemas.GameFileImport.properties[key]}});
+    doc.components.schemas.GamePresetFileCreate=withFile(json(presetFileFields,'GamePresetFileCreate',true),'presetFile');
+    doc.components.schemas.GamePresetFileReplace=withFile(json(presetReplacementFields,'GamePresetFileReplace',true),'presetFile');
+    doc.components.schemas.GameCoverReplace=withFile({type:'object',additionalProperties:false,properties:{}},'coverFile');
+    doc.components.schemas.GamePresetFileResult={type:'object',additionalProperties:false,required:['preset','warnings'],properties:{preset:ref('GamePreset'),warnings:{type:'array',items:{type:'string'}}}};
+    const upload=(operationId:string,response:string,write:string,parameters:any[],created=false)=>({...operation(operationId,ref(response),parameters,true,undefined,created),requestBody:{required:true,content:{'multipart/form-data':{schema:ref(write)}}}});
+    doc.paths['/admin/games/{id}/presets/import']={post:{...upload('adminAddNativeGamePreset','GamePresetFileResult','GamePresetFileCreate',[parameter('id')],true),description:'Adds one native exported preset to an existing game. Does not change game publication. Defaults to draft and not default. isDefault is the text true or false; true requires published and no existing default.'}};
+    doc.paths['/admin/games/{id}/presets/{presetId}/file']={put:{...upload('adminReplaceNativeGamePresetFile','GamePresetFileResult','GamePresetFileReplace',[...pp,match]),description:'Replaces native Actions while preserving preset ID, slug, description, status and default flag. Optional presetName renames the display name. If-Match is the preset revision. Increments preset version/revision and retains prior snapshots atomically.'}};
+    const coverUpload={...upload('adminReplaceGameCover','Game','GameCoverReplace',[parameter('id'),match]),description:'Replaces or adds a normalized cover. If-Match is the game revision. Preserves game ID and settings; increments game revision and audits atomically with image data.'};
     for(const admin of [false,true]) {
-        doc.paths[(admin?'/admin':'')+'/games/{id}/cover']={get:{operationId:admin?'adminGetGameCover':'getPublishedGameCover',security:admin?[{adminServiceKey:[]}]:[],parameters:[parameter('id')],description:admin?'Admin preview, including drafts and archived games.':'Serves only a published game in an active category (or without category). No purchase restriction.',responses:{'200':{description:'Normalized cover image. Cache-Control: no-store.',content:{'image/webp':{schema:{type:'string',format:'binary'}}}},...errors}}};
+        doc.paths[(admin?'/admin':'')+'/games/{id}/cover']={...(admin?{put:coverUpload}:{}),get:{operationId:admin?'adminGetGameCover':'getPublishedGameCover',security:admin?[{adminServiceKey:[]}]:[],parameters:[parameter('id')],description:admin?'Admin preview, including drafts and archived games.':'Serves only a published game in an active category (or without category). No purchase restriction.',responses:{'200':{description:'Normalized cover image. Cache-Control: no-store.',content:{'image/webp':{schema:{type:'string',format:'binary'}}}},...errors}}};
     }
     return doc;
 }

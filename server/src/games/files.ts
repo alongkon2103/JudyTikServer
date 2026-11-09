@@ -22,6 +22,12 @@ function isAnimatedPng(bytes:Buffer):boolean {
 export const gameFileFields = gameWrite.pick({slug:true,name:true,description:true,categoryId:true,platform:true})
  .extend({status:z.enum(['draft','published']).default('draft'),presetName:z.string().trim().min(1).max(80).optional()}).strict();
 export function parseGameFileFields(input:unknown) { return parse(gameFileFields,input); }
+export const presetFileFields=z.object({slug:gameWrite.shape.slug,presetName:gameFileFields.shape.presetName,description:z.string().max(4000).default(''),status:z.enum(['draft','published']).default('draft'),isDefault:z.enum(['true','false']).default('false').transform(value=>value==='true')}).strict();
+export const presetReplacementFields=z.object({presetName:gameFileFields.shape.presetName}).strict();
+export const coverReplacementFields=z.object({}).strict();
+export function presetFileWarnings(payload:ReturnType<typeof validatePreset>){
+ return payload.actions.some(rule=>rule.effects.some(effect=>'media' in effect))?['พรีเซตอ้างถึงไฟล์เสียงหรือวิดีโอบนเครื่องเดิม ไฟล์ export ไม่ได้แนบสื่อมาด้วย ผู้ใช้ต้องเลือกไฟล์ใหม่หลังนำเข้า']:[];
+}
 export function decodePresetFile(bytes:Buffer) {
  if(bytes.length>MAX_PRESET_FILE) throw new ApiError(413,'PRESET_FILE_TOO_LARGE');
  let value:any;
