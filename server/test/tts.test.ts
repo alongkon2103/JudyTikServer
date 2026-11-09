@@ -73,12 +73,18 @@ test('TTS templates require 1 to 500 characters and reject all C0 controls', () 
 })
 
 
-test('TTS legacy documents remain valid and optional filter rejects malformed or oversized lists', () => {
+test('TTS legacy documents remain valid and optional filter rejects malformed lists', () => {
   const {filter,...base}=defaults
   const legacy={...base,speed:1,read:{comment:false,gift:false,follow:false},templates:{comment:'{username} พูดว่า {comment}',gift:'ขอบคุณ {username} สำหรับ {gift} {count} ชิ้น',follow:'ขอบคุณ {username} ที่ติดตาม'}}
   assert.equal(validTtsData(legacy),true)
   for(const filter of [null, {}, {enabled:'yes',blockedWords:[]}, {enabled:true,blockedWords:['']},
-    {enabled:true,blockedWords:['a'.repeat(61)]}, {enabled:true,blockedWords:Array(101).fill('word')},
     {enabled:true,blockedWords:['bad\nword']}, {enabled:true,blockedWords:[],extra:true}])
     assert.equal(validTtsData({...defaults,filter}),false)
+})
+
+test('TTS accepts long multilingual custom phrases and large lists without changing templates',()=>{
+ const phrase='สวัสดี 欢迎 नमस्ते સ્વાગત \\ '.repeat(60)
+ const data={...defaultTtsData(),filter:{enabled:true,blockedWords:[phrase,...Array.from({length:150},(_,i)=>'welcome '+i)]}}
+ assert.equal(validTtsData(data),true)
+ assert.equal(validTtsData({...data,templates:{...data.templates,comment:'a'.repeat(501)}}),false)
 })

@@ -138,3 +138,7 @@ Desktop reports actual TikTok LIVE connections using session-scoped 30-second he
 ## จำนวนอันดับ Top Likers
 
 Desktop เลือก Top 5 / Top 10 ได้ผ่าน widgets["top-likers"].likerLimit (5 หรือ 10 เท่านั้น; ค่าที่ไม่ได้ระบุใช้ Top 10) โดยส่ง X-JudyTik-Overlay-Features: top-likers-limit ร่วมกับ capabilities เดิม API ซ่อน field นี้จากไคลเอนต์เก่า และเก็บค่าที่ตั้งไว้เมื่อไคลเอนต์เก่าบันทึกโดยไม่ได้ส่ง field นี้ รอบนี้ไม่ต้อง migration หรือ grants เพิ่ม ให้ pull, npm --prefix server run build และ pm2 restart judytik-backend --update-env ตามปกติ
+
+## รายการคำบล็อก TTS แบบยาว
+
+เอาขีดจำกัด 100 รายการและ 60 ตัวอักษรต่อวลีออก รองรับหลายภาษาและข้อความยาว โดยขนาดคำขอรวมยังใช้เพดาน 256 KiB ของ API เดิม และข้อความ template อีเวนต์ยังสูงสุด 500 ตัวอักษร ตัวตรวจคำภาษาอังกฤษใช้การค้นหาข้อความพร้อมขอบเขต Unicode เพื่อรองรับรายการใหญ่โดยไม่สร้าง regex ขนาดใหญ่ ต้องอัปเดตทั้ง Desktop และ backend; รอบนี้ไม่ต้อง migration/grants เพิ่ม

@@ -33,9 +33,9 @@ export function validTtsFilter(value) {
     && Array.isArray(value.excludedBasicWords) && value.excludedBasicWords.length <= basicBlockedWords.length
     && new Set(value.excludedBasicWords).size === value.excludedBasicWords.length
     && value.excludedBasicWords.every(word => basicBlockedWords.includes(word)))) && typeof value.enabled === 'boolean'
-    && Array.isArray(value.blockedWords) && value.blockedWords.length <= 100
+    && Array.isArray(value.blockedWords)
     && value.blockedWords.every(word => typeof word === 'string' && word.trim().length > 0
-      && word.length <= 60 && !/[\x00-\x1f\x7f]/.test(word))
+      && !/[\x00-\x1f\x7f]/.test(word))
 }
 export const basicBlockedWords = Object.freeze([
   'fuck', 'fucking', 'fucked', 'fucker', 'motherfucker', 'motherfucking',
@@ -46,8 +46,19 @@ export const basicBlockedWords = Object.freeze([
 ]);
 const normalize = text => text.normalize('NFKC').replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g, '').toLowerCase();
 const segmenter = new Intl.Segmenter('th', { granularity: 'word' });
-const escapeRegex = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const matchesLatin = (text, word) => new RegExp('(^|[^\\p{L}\\p{N}])' + escapeRegex(word) + '(?=$|[^\\p{L}\\p{N}])', 'u').test(text);
+const matchesLatin = (text, word) => {
+  if (word.length > text.length) return false;
+  let index = text.indexOf(word);
+  while (index >= 0) {
+    const end = index + word.length;
+    // Two UTF-16 units retain astral letters/numbers beside the literal match.
+    const before = text.slice(Math.max(0, index - 2), index);
+    const after = text.slice(end, end + 2);
+    if (!/[\p{L}\p{N}]$/u.test(before) && !/^[\p{L}\p{N}]/u.test(after)) return true;
+    index = text.indexOf(word, index + 1);
+  }
+  return false;
+};
 export function isTtsTextBlocked(text, filter = { enabled: true, blockedWords: [] }) {
   if (!filter.enabled) return false;
   const normalized = normalize(text);

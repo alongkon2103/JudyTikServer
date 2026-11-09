@@ -143,6 +143,18 @@ test('TTS accepts all inclusive settings and template limits over HTTP', async (
   assert.deepEqual(await (await call(a)).json(), { revision: '1', data: changed })
 })
 
+test('TTS HTTP round-trips long multilingual filters while retaining the 256 KiB body boundary',async()=>{
+ const a=await h.signIn(),phrase='สวัสดี 欢迎 नमस्ते સ્વાગત \\ '.repeat(60)
+ const changed={...document(),filter:{enabled:true,blockedWords:[phrase,...Array.from({length:150},(_,i)=>'รายการ '+i)]}}
+ const written=await save(a,changed)
+ assert.equal(written.status,200)
+ assert.deepEqual(await (await call(a)).json(),{revision:'1',data:changed})
+ const oversized=await save(a,{...changed,filter:{enabled:true,blockedWords:['ก'.repeat(90000)]}},'1')
+ assert.equal(oversized.status,413)
+ assert.equal((await oversized.json()).error.code,'REQUEST_TOO_LARGE')
+ assert.deepEqual(await (await call(a)).json(),{revision:'1',data:changed})
+})
+
 test('TTS database stores only the bounded account settings document', async () => {
   const columns = await owner.query(`SELECT column_name FROM information_schema.columns WHERE table_schema='judytik' AND table_name='tts_workspaces' ORDER BY ordinal_position`)
   assert.deepEqual(columns.rows.map(row => row.column_name), ['user_id', 'data', 'revision', 'created_at', 'updated_at'])

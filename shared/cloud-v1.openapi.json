@@ -2996,11 +2996,10 @@
               },
               "blockedWords": {
                 "type": "array",
-                "maxItems": 100,
+                "description": "Custom words or phrases in any language, without entry-count or phrase-length limits. The complete HTTP request remains limited to 256 KiB.",
                 "items": {
                   "type": "string",
                   "minLength": 1,
-                  "maxLength": 60,
                   "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
                 }
               },
