@@ -1,0 +1,31 @@
+{
+  "format": "judytik-actions-preset",
+  "version": 1,
+  "preset": {
+    "schemaVersion": 1,
+    "name": "เกมทดสอบ",
+    "actions": [
+      {
+        "id": "follow-key",
+        "name": "กด A เมื่อติดตาม",
+        "trigger": "follow",
+        "enabled": true,
+        "giftId": "",
+        "threshold": 1,
+        "minCoins": 0,
+        "cooldownSeconds": 0,
+        "comboMode": "each-event",
+        "commentMatch": "",
+        "hotkey": "",
+        "effects": [
+          {
+            "kind": "keyboard",
+            "keys": [
+              "A"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

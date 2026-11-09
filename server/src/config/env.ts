@@ -1,5 +1,6 @@
 import { readAuthConfig, type AuthConfig } from '../auth/config.js'
 import { readLiveConfig, type LiveConfig } from '../live/config.js'
+import { readApiOrigin } from './origin.js'
 export interface ServerConfig {
   nodeEnv: 'development' | 'test' | 'production'
   host: string
@@ -7,6 +8,7 @@ export interface ServerConfig {
   trustProxy: false | 'loopback'
   databaseUrl: string
   adminApiKey: string
+  apiOrigin?: string
   auth?: AuthConfig
   live?: LiveConfig
 }
@@ -58,6 +60,7 @@ export function readConfig(env: NodeJS.ProcessEnv): ServerConfig {
     port,
     databaseUrl: raw!,
     adminApiKey,
+    apiOrigin: env.API_ORIGIN === undefined ? undefined : readApiOrigin(env),
     auth: readAuthConfig(env),
     live: readLiveConfig(env),
   }

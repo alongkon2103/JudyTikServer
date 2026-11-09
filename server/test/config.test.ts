@@ -12,6 +12,11 @@ test('config accepts dev DB without Euler key or migration credentials', () => {
   assert.equal(config.host, '127.0.0.1')
   assert.equal(config.adminApiKey, base.ADMIN_API_KEY)
 })
+test('public API origin is retained and validated even when OAuth is disabled',()=>{
+ const config=readConfig({...base,API_ORIGIN:'https://api.example.invalid'});
+ assert.equal(config.auth,undefined);assert.equal(config.apiOrigin,'https://api.example.invalid');
+ for(const API_ORIGIN of ['https://example.invalid/path','https://user:password@example.invalid','https://example.invalid?bad=true','http://remote.example.invalid'])assert.throws(()=>readConfig({...base,API_ORIGIN}),/Invalid API_ORIGIN/);
+})
 for (const [label, overrides, key] of [
   ['missing DB', { DATABASE_URL: '' }, 'DATABASE_URL'],
   [

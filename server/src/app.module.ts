@@ -1,6 +1,7 @@
 import { HistoryController } from './history/controller.js'
 import { HistoryService } from './history/service.js'
 import {GamesService} from './games/service.js'
+import {GameFilesController} from './games/files.controller.js'
 import {GamesController,GameCategoriesController,AdminGameCategoriesController,AdminGamesController} from './games/controller.js'
 import {
   Module,
@@ -71,7 +72,7 @@ export class AppModule {
         AdminUsersController,
         EntitlementsAdminController,
         HealthController, HistoryController,
-        GamesController, GameCategoriesController, AdminGameCategoriesController, AdminGamesController,
+        GamesController, GameCategoriesController, AdminGameCategoriesController, AdminGamesController, GameFilesController,
         GiftsController,
         AdminGiftsController,
         AuthController,

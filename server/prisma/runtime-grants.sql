@@ -21,6 +21,7 @@ GRANT SELECT,INSERT,UPDATE ON judytik.overlays_workspaces TO :"runtime_role";
 -- Games catalog: archival API has no need for DELETE or version-history mutation.
 GRANT SELECT,INSERT,UPDATE ON judytik.game_categories,judytik.games,judytik.game_presets TO :"runtime_role";
 GRANT SELECT,INSERT ON judytik.game_preset_versions TO :"runtime_role";
+GRANT SELECT,INSERT ON judytik.game_covers TO :"runtime_role";
 
 -- History cannot be deleted, reassigned, or written from a different desktop device.
 GRANT SELECT,INSERT,UPDATE ON judytik.live_history TO :"runtime_role";

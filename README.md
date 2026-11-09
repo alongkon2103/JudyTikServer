@@ -2,6 +2,12 @@
 
 Backend แยกสำหรับ JudyTik: NestJS / Node.js 24 / Prisma 7 / PostgreSQL ไม่รวม React หรือ Electron และไม่ต้องติดตั้ง dependencies ของโปรแกรม Desktop
 
+## นำเข้าพรีเซตเกมพร้อมรูปปกผ่าน Admin API
+
+`POST /v1/admin/games/import` รับ multipart form-data: `presetFile` ที่ export จาก JudyTik, `coverFile`, `slug`, `name` และค่าประกอบ เช่น `description` / `status` ใช้ Admin key เดิม สร้างเกม รูป พรีเซต เวอร์ชันและ audit ใน transaction เดียว ค่าเริ่มต้นเป็น draft ยังไม่ล็อกสิทธิ์ซื้อเกม
+
+ดู [เอกสารภาษาไทยพร้อมคำสั่ง deploy](docs/ADMIN_GAME_PRESETS_API.th.md), [OpenAPI](server/openapi.json) และ [Postman Games](server/postman/JudyTik-Admin-Games.postman_collection.json) รุ่นนี้เพิ่ม Sharp และตาราง `game_covers`: ติดตั้ง dependencies, generate Prisma, migrate และ grants ก่อนเริ่ม Backend
+
 ## รันด้วย PM2
 
 ตั้ง `server/.env`, ติดตั้ง dependencies, generate Prisma, ใช้ migrations/grants และ build Backend ให้เรียบร้อยก่อน จากโฟลเดอร์ root ของ repository:

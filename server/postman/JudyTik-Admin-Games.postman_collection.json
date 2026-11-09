@@ -1,0 +1,70 @@
+{
+  "info": {
+    "_postman_id": "cbfa8d67-abac-46b3-9f1a-4707012905af",
+    "name": "JudyTik - Admin Games",
+    "description": "นำเข้าพรีเซตจาก JudyTik พร้อมรูปปก ชื่อเกม คำอธิบายและ slug เลือกไฟล์จริงใน Body และเปลี่ยน slug ก่อนส่ง ค่าเริ่มต้นเป็น draft ยังไม่มีการล็อกสิทธิ์ซื้อเกม ดู docs/ADMIN_GAME_PRESETS_API.th.md",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminApiKey}}", "type": "string" }] },
+  "variable": [
+    { "key": "gameId", "value": "" },
+    { "key": "presetId", "value": "" },
+    { "key": "gameRevision", "value": "" },
+    { "key": "presetRevision", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "00 - List admin games",
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/admin/games?page=1&pageSize=25" }
+    },
+    {
+      "name": "01 - Import native preset and cover",
+      "request": {
+        "method": "POST", "header": [], "url": "{{baseUrl}}/admin/games/import",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "slug", "value": "my-new-game", "type": "text" },
+            { "key": "name", "value": "เกมใหม่ของฉัน", "type": "text" },
+            { "key": "description", "value": "พรีเซตจาก JudyTik", "type": "text" },
+            { "key": "status", "value": "draft", "type": "text" },
+            { "key": "platform", "value": "pc", "type": "text" },
+            { "key": "presetFile", "type": "file", "src": [], "description": "เลือก .judytik.json ที่ export จาก JudyTik ไม่เกิน 1 MiB" },
+            { "key": "coverFile", "type": "file", "src": [], "description": "เลือกภาพนิ่ง PNG/JPEG/WebP ไม่เกิน 2 MiB" }
+          ]
+        }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Created', () => pm.response.to.have.status(201));",
+        "if (pm.response.code === 201) {",
+        "  const result = pm.response.json();",
+        "  pm.collectionVariables.set('gameId', result.game.id);",
+        "  pm.collectionVariables.set('presetId', result.preset.id);",
+        "  pm.collectionVariables.set('gameRevision', result.game.revision);",
+        "  pm.collectionVariables.set('presetRevision', result.preset.revision);",
+        "  pm.test('Native preset', () => pm.expect(result.preset.format).to.eql('action-preset-v1'));",
+        "}"
+      ] } }]
+    },
+    {
+      "name": "02 - Get imported game",
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/admin/games/{{gameId}}" }
+    },
+    {
+      "name": "03 - List imported presets",
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/admin/games/{{gameId}}/presets" }
+    },
+    {
+      "name": "04 - Admin cover preview (draft allowed)",
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/admin/games/{{gameId}}/cover" }
+    },
+    {
+      "name": "05 - Preset version history",
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/admin/games/{{gameId}}/presets/{{presetId}}/versions" }
+    },
+    {
+      "name": "06 - Public cover (404 until published)",
+      "request": { "method": "GET", "auth": { "type": "noauth" }, "header": [], "url": "{{baseUrl}}/games/{{gameId}}/cover" }
+    }
+  ]
+}

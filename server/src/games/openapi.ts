@@ -1,11 +1,20 @@
 import { z } from 'zod';
 import { categoryWrite, gameWrite, presetWrite, reorderWrite, gamePresetImport } from './contracts.js';
+import {gameFileFields} from './files.js';
 export function addGamesOpenApi(doc: any) {
-    const json = (s: z.ZodType) => { const { $schema, ...value } = z.toJSONSchema(s); return value; };
+    const json = (s:z.ZodType,name:string,input=false) => {
+        const {$schema,...value}=z.toJSONSchema(s,{io:input?'input':'output'});
+        const scopeRefs=(node:any):void=>{
+            if(!node || typeof node!=='object')return;
+            if(typeof node.$ref==='string' && node.$ref.startsWith('#/$defs/'))node.$ref=`#/components/schemas/${name}${node.$ref.slice(1)}`;
+            for(const child of Object.values(node))scopeRefs(child);
+        };
+        scopeRefs(value);return value;
+    };
     const common = { id: z.uuid(), revision: z.string().regex(/^[1-9][0-9]*$/), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime() };
     const schemas = { GameCategoryWrite: categoryWrite, GameWrite: gameWrite, GamePresetWrite: presetWrite, GameReorder: reorderWrite, GamePresetImport: gamePresetImport, GameCategory: categoryWrite.extend(common), Game: gameWrite.extend(common), GamePreset: presetWrite.extend({ ...common, gameId: z.uuid(), version: z.number().int().min(1) }) };
     for (const [name, s] of Object.entries(schemas))
-        doc.components.schemas[name] = json(s);
+        doc.components.schemas[name] = json(s,name,name.endsWith('Write') || ['GameReorder','GamePresetImport'].includes(name));
     const ref = (name: string) => ({ $ref: '#/components/schemas/' + name });
     const body = (name: string) => ({ required: true, content: { 'application/json': { schema: ref(name) } } });
     const errors = Object.fromEntries([400, 401, 404, 409, 412, 413, 422, 428, 429, 500].map(n => [n, { description: 'Error envelope', content: { 'application/json': { schema: ref('Error') } } }]));
@@ -42,5 +51,14 @@ export function addGamesOpenApi(doc: any) {
         schema.properties.hasMore = { type: 'boolean' };
     }
     doc.paths['/admin/games/{id}/presets/{presetId}/versions'] = { get: operation('listGamePresetVersions', { type: 'object', properties: { items: { type: 'array', items: { type: 'object', properties: { presetId: { type: 'string', format: 'uuid' }, version: { type: 'integer' }, snapshot: ref('GamePreset'), createdAt: { type: 'string', format: 'date-time' } } } } } }, [...pp, ...query.filter(p => ['page', 'pageSize'].includes(p.name as string))], true) };
+    const fields:any=json(gameFileFields,'GameFileImport',true);
+    doc.components.schemas.GameFileImport = {...fields, required:[...fields.required,'presetFile','coverFile'], properties:{...fields.properties,
+        presetFile:{type:'string',format:'binary',description:'Native judytik-actions-preset version 1 JSON export; maximum 1 MiB file and 256 KiB decoded preset.'},
+        coverFile:{type:'string',format:'binary',description:'Static PNG, JPEG or WebP; maximum 2 MiB and 16 megapixels. Normalized to WebP, at most 1600 x 1600 and 1 MiB.'}}};
+    doc.components.schemas.GameFileImportResult = {type:'object',additionalProperties:false,required:['game','preset','warnings'],properties:{game:ref('Game'),preset:ref('GamePreset'),warnings:{type:'array',items:{type:'string'}}}};
+    doc.paths['/admin/games/import']={post:{...operation('adminImportJudyTikGameFile',ref('GameFileImportResult'),[],true,undefined,true),description:'Atomically creates a new game, uploaded cover, native preset, version and audit records. Draft by default; published creates a published default preset. Duplicate slug returns 409 without overwriting. Does not enforce purchase rights. Exported local media references are preserved with a warning; sound/video bytes are not included.',requestBody:{required:true,content:{'multipart/form-data':{schema:ref('GameFileImport')}}}}};
+    for(const admin of [false,true]) {
+        doc.paths[(admin?'/admin':'')+'/games/{id}/cover']={get:{operationId:admin?'adminGetGameCover':'getPublishedGameCover',security:admin?[{adminServiceKey:[]}]:[],parameters:[parameter('id')],description:admin?'Admin preview, including drafts and archived games.':'Serves only a published game in an active category (or without category). No purchase restriction.',responses:{'200':{description:'Normalized cover image. Cache-Control: no-store.',content:{'image/webp':{schema:{type:'string',format:'binary'}}}},...errors}}};
+    }
     return doc;
 }

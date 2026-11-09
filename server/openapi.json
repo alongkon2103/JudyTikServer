@@ -6118,6 +6118,413 @@
         }
       }
     },
+    "/admin/games/import": {
+      "post": {
+        "operationId": "adminImportJudyTikGameFile",
+        "security": [
+          {
+            "adminServiceKey": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Success. Mutations return a strong ETag; DELETE archives and retains history.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameFileImportResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "description": "Atomically creates a new game, uploaded cover, native preset, version and audit records. Draft by default; published creates a published default preset. Duplicate slug returns 409 without overwriting. Does not enforce purchase rights. Exported local media references are preserved with a warning; sound/video bytes are not included.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/GameFileImport"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/games/{id}/cover": {
+      "get": {
+        "operationId": "getPublishedGameCover",
+        "security": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "description": "Serves only a published game in an active category (or without category). No purchase restriction.",
+        "responses": {
+          "200": {
+            "description": "Normalized cover image. Cache-Control: no-store.",
+            "content": {
+              "image/webp": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/games/{id}/cover": {
+      "get": {
+        "operationId": "adminGetGameCover",
+        "security": [
+          {
+            "adminServiceKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "description": "Admin preview, including drafts and archived games.",
+        "responses": {
+          "200": {
+            "description": "Normalized cover image. Cache-Control: no-store.",
+            "content": {
+              "image/webp": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/admin/entitlements": {
       "get": {
         "operationId": "adminGetEntitlement",
@@ -9665,10 +10072,7 @@
         },
         "required": [
           "slug",
-          "name",
-          "description",
-          "sortOrder",
-          "status"
+          "name"
         ],
         "additionalProperties": false
       },
@@ -9758,21 +10162,13 @@
               "type": "string"
             },
             "additionalProperties": {
-              "$ref": "#/$defs/__schema0"
+              "$ref": "#/components/schemas/GameWrite/$defs/__schema0"
             }
           }
         },
         "required": [
           "slug",
-          "name",
-          "description",
-          "categoryId",
-          "platform",
-          "coverUrl",
-          "url",
-          "status",
-          "sortOrder",
-          "metadata"
+          "name"
         ],
         "additionalProperties": false,
         "$defs": {
@@ -9793,7 +10189,7 @@
               {
                 "type": "array",
                 "items": {
-                  "$ref": "#/$defs/__schema0"
+                  "$ref": "#/components/schemas/GameWrite/$defs/__schema0"
                 }
               },
               {
@@ -9802,7 +10198,7 @@
                   "type": "string"
                 },
                 "additionalProperties": {
-                  "$ref": "#/$defs/__schema0"
+                  "$ref": "#/components/schemas/GameWrite/$defs/__schema0"
                 }
               }
             ]
@@ -9841,7 +10237,7 @@
               "type": "string"
             },
             "additionalProperties": {
-              "$ref": "#/$defs/__schema0"
+              "$ref": "#/components/schemas/GamePresetWrite/$defs/__schema0"
             }
           },
           "isDefault": {
@@ -9861,11 +10257,8 @@
         "required": [
           "slug",
           "name",
-          "description",
           "format",
-          "payload",
-          "isDefault",
-          "status"
+          "payload"
         ],
         "additionalProperties": false,
         "$defs": {
@@ -9886,7 +10279,7 @@
               {
                 "type": "array",
                 "items": {
-                  "$ref": "#/$defs/__schema0"
+                  "$ref": "#/components/schemas/GamePresetWrite/$defs/__schema0"
                 }
               },
               {
@@ -9895,7 +10288,7 @@
                   "type": "string"
                 },
                 "additionalProperties": {
-                  "$ref": "#/$defs/__schema0"
+                  "$ref": "#/components/schemas/GamePresetWrite/$defs/__schema0"
                 }
               }
             ]
@@ -10113,7 +10506,7 @@
               "type": "string"
             },
             "additionalProperties": {
-              "$ref": "#/$defs/__schema0"
+              "$ref": "#/components/schemas/Game/$defs/__schema0"
             }
           },
           "id": {
@@ -10171,7 +10564,7 @@
               {
                 "type": "array",
                 "items": {
-                  "$ref": "#/$defs/__schema0"
+                  "$ref": "#/components/schemas/Game/$defs/__schema0"
                 }
               },
               {
@@ -10180,7 +10573,7 @@
                   "type": "string"
                 },
                 "additionalProperties": {
-                  "$ref": "#/$defs/__schema0"
+                  "$ref": "#/components/schemas/Game/$defs/__schema0"
                 }
               }
             ]
@@ -10219,7 +10612,7 @@
               "type": "string"
             },
             "additionalProperties": {
-              "$ref": "#/$defs/__schema0"
+              "$ref": "#/components/schemas/GamePreset/$defs/__schema0"
             }
           },
           "isDefault": {
@@ -10299,7 +10692,7 @@
               {
                 "type": "array",
                 "items": {
-                  "$ref": "#/$defs/__schema0"
+                  "$ref": "#/components/schemas/GamePreset/$defs/__schema0"
                 }
               },
               {
@@ -10308,7 +10701,7 @@
                   "type": "string"
                 },
                 "additionalProperties": {
-                  "$ref": "#/$defs/__schema0"
+                  "$ref": "#/components/schemas/GamePreset/$defs/__schema0"
                 }
               }
             ]
@@ -10339,6 +10732,99 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 100
+          }
+        }
+      },
+      "GameFileImport": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "description": {
+            "default": "",
+            "type": "string",
+            "maxLength": 16000
+          },
+          "categoryId": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "platform": {
+            "default": "pc",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "status": {
+            "default": "draft",
+            "type": "string",
+            "enum": [
+              "draft",
+              "published"
+            ]
+          },
+          "presetName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "presetFile": {
+            "type": "string",
+            "format": "binary",
+            "description": "Native judytik-actions-preset version 1 JSON export; maximum 1 MiB file and 256 KiB decoded preset."
+          },
+          "coverFile": {
+            "type": "string",
+            "format": "binary",
+            "description": "Static PNG, JPEG or WebP; maximum 2 MiB and 16 megapixels. Normalized to WebP, at most 1600 x 1600 and 1 MiB."
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "presetFile",
+          "coverFile"
+        ],
+        "additionalProperties": false
+      },
+      "GameFileImportResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "game",
+          "preset",
+          "warnings"
+        ],
+        "properties": {
+          "game": {
+            "$ref": "#/components/schemas/Game"
+          },
+          "preset": {
+            "$ref": "#/components/schemas/GamePreset"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

@@ -180,6 +180,7 @@ try {
       'test/database.integration.ts',
       'test/gifts.integration.ts',
       'test/games.integration.ts',
+      'test/game-files.integration.ts',
       'test/auth.integration.ts',
       'test/accounts.integration.ts',
       'test/account-linking.integration.ts',

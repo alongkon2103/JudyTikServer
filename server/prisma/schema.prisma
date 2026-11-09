@@ -384,9 +384,18 @@ model Game {
  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
  presets GamePreset[]
+ cover GameCover?
  @@index([status,sortOrder,id])
  @@index([categoryId,status])
  @@map("games")
+ @@schema("judytik")
+}
+model GameCover {
+ gameId String @id @map("game_id") @db.Uuid
+ game Game @relation(fields:[gameId],references:[id],onDelete:Restrict,onUpdate:NoAction)
+ data Bytes @db.ByteA
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+ @@map("game_covers")
  @@schema("judytik")
 }
 model GamePreset {

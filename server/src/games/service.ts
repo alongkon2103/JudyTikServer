@@ -9,6 +9,8 @@ import { ApiError } from '../http/api-error.js';
 import { validatePreset } from '../presets/contracts.js';
 import { PresetsService } from '../presets/service.js';
 import { categoryWrite, gameWrite, presetWrite, gamePresetImport, listQuery, pageQuery, reorderWrite, parse, uuid, matchRevision } from './contracts.js';
+import {gameFileFields} from './files.js';
+import type {z} from 'zod';
 type Kind = 'category' | 'game' | 'preset';
 function dto<T>(value: T): any { return JSON.parse(JSON.stringify(value, (_key, v) => typeof v === 'bigint' ? v.toString() : v)); }
 const visible: Prisma.GameWhereInput = { status: 'published', OR: [{ categoryId: null }, { category: { status: 'active' } }] };
@@ -19,6 +21,31 @@ export class GamesService {
     private readonly db: PrismaService,
     @Inject(PresetsService)
     private readonly presets: PresetsService) { }
+    async cover(id:string,admin=false):Promise<Buffer> {
+        await this.get(id,admin);
+        const row=await this.db.client.gameCover.findUnique({where:{gameId:id},select:{data:true}});
+        if(!row)throw new ApiError(404,'GAME_COVER_NOT_FOUND');
+        return Buffer.from(row.data);
+    }
+    async importFile(fields:z.infer<typeof gameFileFields>,payload:ReturnType<typeof validatePreset>,cover:Buffer,origin:string,requestId:string) {
+        const {presetName,...gameFields}=fields;
+        const warnings=payload.actions.some(rule=>rule.effects.some(effect=>'media' in effect))
+            ? ['พรีเซตอ้างถึงไฟล์เสียงหรือวิดีโอบนเครื่องเดิม ไฟล์ export ไม่ได้แนบสื่อมาด้วย ผู้ใช้ต้องเลือกไฟล์ใหม่หลังนำเข้า'] : [];
+        return this.locked(async tx=>{
+            if(gameFields.categoryId) {
+                const category=await tx.gameCategory.findUnique({where:{id:gameFields.categoryId}});
+                if(!category || category.status!=='active')throw new ApiError(400,'GAME_CATEGORY_UNAVAILABLE');
+            }
+            const id=randomUUID();
+            const game=await tx.game.create({data:{...gameFields,id,coverUrl:new URL(`/v1/games/${id}/cover`,origin).href}});
+            await tx.gameCover.create({data:{gameId:id,data:new Uint8Array(cover)}});
+            const preset=await tx.gamePreset.create({data:{gameId:id,slug:'default',name:presetName??payload.name,description:'',format:'action-preset-v1',payload:payload as Prisma.InputJsonValue,status:game.status,isDefault:game.status==='published'}});
+            await tx.gamePresetVersion.create({data:{presetId:preset.id,version:preset.version,snapshot:dto(preset)}});
+            await this.audit(tx,'game',id,game.revision,requestId,'created');
+            await this.audit(tx,'preset',preset.id,preset.revision,requestId,'created');
+            return {game:dto(game),preset:dto(preset),warnings};
+        });
+    }
     async categories(admin = false) { return { items: dto(await this.db.client.gameCategory.findMany({ where: admin ? {} : { status: 'active' }, orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] })) }; }
     async list(input: unknown, admin = false) { const q = parse(listQuery, input); if (!admin && q.status && q.status !== 'published')
         throw new ApiError(400, 'INVALID_REQUEST'); const where: Prisma.GameWhereInput = { ...(admin ? (q.status ? { status: q.status } : {}) : visible), ...(q.categoryId ? { categoryId: q.categoryId } : {}), ...(q.q ? { AND: [{ OR: [{ name: { contains: q.q.replace(/[\\%_]/g, '\\$&'), mode: 'insensitive' } }, { description: { contains: q.q.replace(/[\\%_]/g, '\\$&'), mode: 'insensitive' } }] }] } : {}) }; return this.db.client.$transaction(async (tx) => { const total = await tx.game.count({ where }); const rows = await tx.game.findMany({ where, orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }], skip: (q.page - 1) * q.pageSize, take: q.pageSize }); return { items: dto(rows), total, page: q.page, pageSize: q.pageSize, totalPages: Math.ceil(total / q.pageSize) }; }, { isolationLevel: 'RepeatableRead' }); }

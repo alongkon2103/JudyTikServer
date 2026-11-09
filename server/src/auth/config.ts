@@ -1,4 +1,5 @@
 import { createPrivateKey, type KeyObject } from 'node:crypto'
+import { readApiOrigin } from '../config/origin.js'
 export interface AuthConfig {
   origin: string
   privateKey: KeyObject
@@ -47,25 +48,7 @@ export function readAuthConfig(env: NodeJS.ProcessEnv): AuthConfig | undefined {
   } catch {
     invalid('AUTH_SIGNING_PRIVATE_KEY')
   }
-  const originValue =
-    env.API_ORIGIN ?? 'http://127.0.0.1:' + (env.PORT ?? '4300')
-  let origin: URL
-  try {
-    origin = new URL(originValue)
-  } catch {
-    invalid('API_ORIGIN')
-  }
-  const local = ['127.0.0.1', 'localhost', '[::1]'].includes(origin!.hostname)
-  if (
-    origin!.username ||
-    origin!.password ||
-    origin!.pathname !== '/' ||
-    origin!.search ||
-    origin!.hash ||
-    !['https:', 'http:'].includes(origin!.protocol) ||
-    (origin!.protocol === 'http:' && (!local || env.NODE_ENV === 'production'))
-  )
-    invalid('API_ORIGIN')
+  const origin = readApiOrigin(env)
   const keyId = env.AUTH_SIGNING_KEY_ID ?? 'judytik-auth-v1'
   if (!/^[A-Za-z0-9_.-]{1,80}$/.test(keyId)) invalid('AUTH_SIGNING_KEY_ID')
   const provider = (prefix: string) => {
@@ -95,7 +78,7 @@ export function readAuthConfig(env: NodeJS.ProcessEnv): AuthConfig | undefined {
     smtp = { url: env.SMTP_URL!, from: env.SMTP_FROM }
   }
   return {
-    origin: origin!.origin,
+    origin,
     privateKey: privateKey!,
     keyId,
     encryptionKey: key(env, 'AUTH_ENCRYPTION_KEY'),
