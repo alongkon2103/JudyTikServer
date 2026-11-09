@@ -32,3 +32,8 @@ GRANT INSERT,UPDATE ON judytik.entitlement_grants TO :"runtime_role";
 GRANT SELECT,INSERT ON judytik.entitlement_operations TO :"runtime_role";
 GRANT UPDATE(merged_into_id,merged_at) ON judytik.users TO :"runtime_role";
 GRANT SELECT,INSERT ON judytik.account_merge_archives TO :"runtime_role";
+
+-- Presence ownership derives from the current Session owner, including account merges.
+GRANT SELECT,INSERT,UPDATE ON judytik.live_presences TO :"runtime_role";
+-- Used connection IDs remain append-only until their owning session is deleted.
+GRANT SELECT,INSERT ON judytik.live_presence_connections TO :"runtime_role";

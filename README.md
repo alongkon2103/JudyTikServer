@@ -130,3 +130,7 @@ See [server/ACCOUNT_LINKING.md](server/ACCOUNT_LINKING.md) for verified-email li
 เพิ่ม `GET /v1/admin/users` สำหรับหลังบ้าน: ค้นหาอีเมลบางส่วน กรอง FREE/PRO ปัจจุบัน และแบ่งหน้า ใช้ `Authorization: Bearer <ADMIN_API_KEY>` เดิม ไม่เพิ่มการล็อกสิทธิ์หรือสถานะออนไลน์
 
 ดู [เอกสาร API ภาษาไทย](docs/ADMIN_ENTITLEMENTS_API.th.md) และ Postman รายการ 11 ใน `server/postman/` ไม่ต้อง migration หรือเพิ่ม environment variable สำหรับ endpoint รายชื่อบัญชี
+
+## Connected LIVE directory
+
+Desktop reports actual TikTok LIVE connections using session-scoped 30-second heartbeats and 90-second leases. The authenticated directory contains only public channel details, deduplicates channels, and excludes expired/revoked sessions and merged/disabled accounts. No extra TikTok/Euler requests or plan enforcement. Apply all Prisma migrations and runtime grants before restarting. See [Thai LIVE directory API](docs/LIVE_DIRECTORY_API.th.md).

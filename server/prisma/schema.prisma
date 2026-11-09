@@ -110,6 +110,8 @@ model Session {
   revokedAt    DateTime? @map("revoked_at") @db.Timestamptz
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   device       Device   @relation(fields: [userId, deviceId], references: [userId, id], onDelete: Cascade, onUpdate: NoAction)
+  livePresence LivePresence?
+  livePresenceConnections LivePresenceConnection[]
   refreshTokens RefreshToken[]
 
   @@index([userId, expiresAt])
@@ -444,4 +446,30 @@ model LiveHistory {
   @@index([userId,startedAt(sort:Desc),id(sort:Desc)],map:"live_history_account_started")
   @@map("live_history")
   @@schema("judytik")
+}
+
+model LivePresence {
+ sessionId String @id @map("session_id") @db.Uuid
+ connectionId String @map("connection_id") @db.Uuid
+ username String @db.VarChar(24)
+ roomId String @map("room_id") @db.VarChar(30)
+ displayName String @map("display_name") @db.VarChar(80)
+ avatarUrl String? @map("avatar_url") @db.VarChar(2048)
+ viewers Int?
+ sequence BigInt @default(0)
+ active Boolean @default(true)
+ expiresAt DateTime @map("expires_at") @db.Timestamptz
+ lastSeenAt DateTime @map("last_seen_at") @db.Timestamptz
+ session Session @relation(fields:[sessionId],references:[id],onDelete:Cascade,onUpdate:NoAction)
+ @@map("live_presences")
+ @@schema("judytik")
+}
+
+model LivePresenceConnection {
+ sessionId String @map("session_id") @db.Uuid
+ connectionId String @map("connection_id") @db.Uuid
+ session Session @relation(fields:[sessionId],references:[id],onDelete:Cascade,onUpdate:NoAction)
+ @@id([sessionId,connectionId])
+ @@map("live_presence_connections")
+ @@schema("judytik")
 }
