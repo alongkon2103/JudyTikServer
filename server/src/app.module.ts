@@ -26,6 +26,8 @@ import { SessionGuard } from './auth/session.guard.js'
 import { CLOCK, systemClock, type Clock } from './auth/clock.js'
 import { AccountsController } from './accounts/accounts.controller.js'
 import { AccountsService } from './accounts/accounts.service.js'
+import {AdminUsersController} from './accounts/admin.controller.js'
+import {AdminUsersService} from './accounts/admin.service.js'
 import {AccountMergeService} from './accounts/merge.service.js'
 import { EmailService } from './accounts/email.service.js'
 import { VerificationMailer } from './accounts/mailer.js'
@@ -66,6 +68,7 @@ export class AppModule {
     return {
       module: AppModule,
       controllers: [
+        AdminUsersController,
         EntitlementsAdminController,
         HealthController, HistoryController,
         GamesController, GameCategoriesController, AdminGameCategoriesController, AdminGamesController,
@@ -76,6 +79,7 @@ export class AppModule {
         PresetsController, SettingsController, LiveController, WinController, SoundpadController, TtsController, OverlaysController,
       ],
       providers: [
+        AdminUsersService,
         EntitlementsAdminService,
         { provide: CONFIG, useValue: config },
         PrismaService,

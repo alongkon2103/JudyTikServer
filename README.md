@@ -116,3 +116,9 @@ API paths ใช้ `/v1`; ดู `server/openapi.json` และ [ข้อม�
 ## Google / Discord shared accounts
 
 See [server/ACCOUNT_LINKING.md](server/ACCOUNT_LINKING.md) for verified-email linking, preserving both accounts, and the required Windows deployment steps.
+
+## Admin account list and entitlement API
+
+เพิ่ม `GET /v1/admin/users` สำหรับหลังบ้าน: ค้นหาอีเมลบางส่วน กรอง FREE/PRO ปัจจุบัน และแบ่งหน้า ใช้ `Authorization: Bearer <ADMIN_API_KEY>` เดิม ไม่เพิ่มการล็อกสิทธิ์หรือสถานะออนไลน์
+
+ดู [เอกสาร API ภาษาไทย](docs/ADMIN_ENTITLEMENTS_API.th.md) และ Postman รายการ 11 ใน `server/postman/` ไม่ต้อง migration หรือเพิ่ม environment variable สำหรับ endpoint รายชื่อบัญชี

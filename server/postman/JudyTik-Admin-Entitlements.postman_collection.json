@@ -444,6 +444,57 @@
         }
       ],
       "response": []
+    },
+    {
+      "name": "11 - List all accounts (email search and FREE/PRO filter)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/admin/users?page={{usersPage}}&pageSize={{usersPageSize}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "users"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "{{usersPage}}"
+            },
+            {
+              "key": "pageSize",
+              "value": "{{usersPageSize}}"
+            },
+            {
+              "key": "email",
+              "value": "{{usersEmail}}",
+              "disabled": true,
+              "description": "Optional partial verified email. Enable this query parameter to search."
+            },
+            {
+              "key": "plan",
+              "value": "{{usersPlan}}",
+              "disabled": true,
+              "description": "Optional FREE or PRO. Disable this parameter to list all plans."
+            }
+          ]
+        },
+        "description": "Read-only canonical account list. Inherits the Admin Bearer token. No Idempotency-Key needed. Includes disabled accounts; merged source accounts are excluded. Enable optional email/plan query parameters as needed."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Account list returned', function () { pm.response.to.have.status(200); const body = pm.response.json(); pm.expect(body.items).to.be.an('array'); pm.expect(body.page).to.be.a('number'); pm.expect(body.total).to.be.a('number'); });"
+            ]
+          }
+        }
+      ]
     }
   ]
 }

@@ -13,6 +13,8 @@ import { CLOCK } from '../src/auth/clock.js'
 import { authHarness } from './support/auth-flow.js'
 
 const config=readConfig(process.env), db=new PrismaService(config), h=authHarness(db)
+// Keep relative date filters aligned with the fixed October history fixtures.
+h.clock.advance(Date.parse('2026-11-01T00:00:00.000Z')-Number(h.clock.now()))
 const owner=new Client({connectionString:process.env.TEST_ADMIN_DATABASE_URL})
 type Account=Awaited<ReturnType<typeof h.signIn>>
 let app:NestExpressApplication, base:string

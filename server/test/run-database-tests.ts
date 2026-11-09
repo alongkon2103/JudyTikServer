@@ -184,6 +184,7 @@ try {
       'test/accounts.integration.ts',
       'test/account-linking.integration.ts',
       'test/entitlements-admin.integration.ts',
+      'test/admin-users.integration.ts',
       'test/direct-launch.integration.ts',
       'test/presets.integration.ts',
       'test/presets-http.integration.ts',

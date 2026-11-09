@@ -7098,6 +7098,114 @@
           }
         }
       }
+    },
+    "/admin/users": {
+      "get": {
+        "operationId": "adminListUsers",
+        "tags": [
+          "Admin users"
+        ],
+        "security": [
+          {
+            "adminServiceKey": []
+          }
+        ],
+        "description": "List canonical accounts, newest first (createdAt DESC, id DESC). Includes disabled and email-less accounts; excludes merged sources. Optional literal case-insensitive email substring and current FREE/PRO filter. Expired, revoked and not-yet-started grants do not confer PRO. Read-only; no feature access enforcement or online presence.",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "description": "Optional literal partial verified email, trimmed and case-insensitive. Use URL encoding, including %2B for +. Empty means no email filter.",
+            "schema": {
+              "type": "string",
+              "maxLength": 254
+            }
+          },
+          {
+            "name": "plan",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "FREE",
+                "PRO"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One transaction and Server time snapshot for filtered total and page rows. An out-of-range page has empty items; zero matches has totalPages 0.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error envelope. Invalid query: INVALID_REQUEST; service key required: ADMIN_UNAUTHORIZED; quota: RATE_LIMITED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error envelope. Invalid query: INVALID_REQUEST; service key required: ADMIN_UNAUTHORIZED; quota: RATE_LIMITED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error envelope. Invalid query: INVALID_REQUEST; service key required: ADMIN_UNAUTHORIZED; quota: RATE_LIMITED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error envelope. Invalid query: INVALID_REQUEST; service key required: ADMIN_UNAUTHORIZED; quota: RATE_LIMITED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8735,6 +8843,9 @@
                 }
               }
             }
+          },
+          "audience": {
+            "$ref": "#/components/schemas/TtsAudience"
           }
         }
       },
@@ -8976,6 +9087,11 @@
           "sliderTextColor": {
             "type": "string",
             "pattern": "^#[a-fA-F0-9]{6}$"
+          },
+          "bigGiftLimit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
           }
         }
       },
@@ -9143,6 +9259,60 @@
             }
           }
         ]
+      },
+      "TtsAudience": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "everyone",
+          "followers",
+          "subscribers",
+          "moderators",
+          "teamMembers",
+          "minTeamLevel",
+          "gifters",
+          "minGifterLevel",
+          "topGifters",
+          "topCount"
+        ],
+        "properties": {
+          "everyone": {
+            "type": "boolean"
+          },
+          "followers": {
+            "type": "boolean"
+          },
+          "subscribers": {
+            "type": "boolean"
+          },
+          "moderators": {
+            "type": "boolean"
+          },
+          "teamMembers": {
+            "type": "boolean"
+          },
+          "minTeamLevel": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "gifters": {
+            "type": "boolean"
+          },
+          "minGifterLevel": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "topGifters": {
+            "type": "boolean"
+          },
+          "topCount": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        }
       },
       "Health": {
         "type": "object",
@@ -10599,6 +10769,105 @@
               "ttsWorkspace",
               "overlaysWorkspace"
             ]
+          }
+        }
+      },
+      "AdminUser": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "userId",
+          "displayName",
+          "avatarUrl",
+          "email",
+          "providers",
+          "createdAt",
+          "disabledAt",
+          "entitlement"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "email"
+          },
+          "providers": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "disabledAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "entitlement": {
+            "$ref": "#/components/schemas/Entitlements"
+          }
+        }
+      },
+      "AdminUserPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total",
+          "totalPages",
+          "serverTime"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminUser"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000000
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "totalPages": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       }
