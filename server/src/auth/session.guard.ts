@@ -4,9 +4,10 @@ import {
   type CanActivate,
   type ExecutionContext,
 } from '@nestjs/common'
-import type { Request } from 'express'
+import type { Request, Response } from 'express'
 import { AuthService, type VerifiedSession } from './auth.service.js'
 import { ApiError } from '../http/api-error.js'
+import { enforceAccountRateLimit } from '../http/account-rate-limit.js'
 export type SessionRequest = Request & { verifiedSession: VerifiedSession }
 @Injectable()
 export class SessionGuard implements CanActivate {
@@ -26,6 +27,7 @@ export class SessionGuard implements CanActivate {
     )
       throw new ApiError(401, 'AUTH_UNAUTHORIZED')
     req.verifiedSession = await this.auth.authenticate(header.slice(7))
+    enforceAccountRateLimit(req, context.switchToHttp().getResponse<Response>(), req.verifiedSession.userId)
     return true
   }
 }

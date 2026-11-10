@@ -67,7 +67,7 @@ Content-Type: application/json
 - ประวัตินี้ครอบคลุมรายการผ่าน API ใหม่ ไม่สามารถสร้างเหตุผล/source ย้อนหลังให้ grants ที่เคยแก้ด้วย SQL ก่อนหน้านี้
 - เกินเวลาแล้ว `/me/entitlements` และ API แอดมินจะอ่านเป็น FREE อัตโนมัติ ไม่ต้องรอ cron; ฝั่ง Desktop เห็นข้อมูลใหม่เมื่อ refresh สิทธิ์ รอบนี้ยังไม่เพิ่มการตัดการใช้งานระหว่าง LIVE หรือข้อจำกัดแต่ละหน้า
 
-รหัสหลัก: 400 `INVALID_REQUEST`/`ENTITLEMENT_EXPIRY_OUT_OF_RANGE`, 401 `ADMIN_UNAUTHORIZED`, 404 `ENTITLEMENT_USER_NOT_FOUND`, 409 `ENTITLEMENT_NOT_ACTIVE`/`ENTITLEMENT_USER_DISABLED`/`IDEMPOTENCY_KEY_CONFLICT`, 428 `IDEMPOTENCY_KEY_REQUIRED`, 429 `RATE_LIMITED` (แอดมิน 30 requests/min/IP และ quota รวม API 120/min/IP)
+รหัสหลัก: 400 `INVALID_REQUEST`/`ENTITLEMENT_EXPIRY_OUT_OF_RANGE`, 401 `ADMIN_UNAUTHORIZED`, 404 `ENTITLEMENT_USER_NOT_FOUND`, 409 `ENTITLEMENT_NOT_ACTIVE`/`ENTITLEMENT_USER_DISABLED`/`IDEMPOTENCY_KEY_CONFLICT`, 428 `IDEMPOTENCY_KEY_REQUIRED`, 429 `RATE_LIMITED` (แอดมิน 30 requests/min/IP และ IP ceiling รวม API 1,200/min/IP)
 
 ### ลองด้วย Postman
 
@@ -112,3 +112,7 @@ Invoke-RestMethod http://127.0.0.1:4300/v1/health
 ## Google / Discord shared accounts
 
 See [ACCOUNT_LINKING.md](ACCOUNT_LINKING.md) for verified-email linking, backups and Windows deployment commands.
+
+## Rate limits สำหรับ shared NAT
+
+API ใช้ IP ceiling 1,200/min/IP และโควตา 120/min ต่อบัญชีที่ authenticate สำเร็จ รวมทุก route และ session ของบัญชีนั้น Auth attempts 10/min/IP, token 30/min/IP และ admin 30/min/IP คงเดิม ดู [โควตา, policy header ของ 429 และคำสั่ง deploy](docs/RATE_LIMITS.th.md) ไม่มี migration หรือ dependency ใหม่ โควตายังเป็น memory ต่อ process ต้องใช้ shared store ก่อนเพิ่มหลาย workers/replicas

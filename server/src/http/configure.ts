@@ -66,25 +66,29 @@ export function configureApp(app: NestExpressApplication, trustProxy: false | 'l
     res.setHeader('cache-control', 'no-store')
     next()
   })
-  const limiter = (limit: number) =>
+  const limiter = (limit: number, policy: 'ip' | 'auth' | 'admin') =>
     rateLimit({
       windowMs: 60000,
       limit,
       standardHeaders: 'draft-8',
       legacyHeaders: false,
-      handler: (req: Request, res: Response) =>
-        res.status(429).json({
+      handler: (req: Request, res: Response) => {
+        res.setHeader('x-judytik-rate-limit-policy', policy)
+        return res.status(429).json({
           error: {
             code: 'RATE_LIMITED',
             message: 'RATE_LIMITED',
             requestId: requestId(req),
           },
-        }),
+        })
+      },
     })
-  app.use('/v1', limiter(120))
-  app.use('/v1/admin', limiter(30))
-  app.use('/v1/auth/desktop/attempts', limiter(10))
-  app.use('/v1/auth/token', limiter(30))
+  // Coarse abuse ceiling leaves room for independent accounts behind shared NAT.
+  // SessionGuard applies the normal 120/min budget only after authentication.
+  app.use('/v1', limiter(1200, 'ip'))
+  app.use('/v1/admin', limiter(30, 'admin'))
+  app.use('/v1/auth/desktop/attempts', limiter(10, 'auth'))
+  app.use('/v1/auth/token', limiter(30, 'auth'))
   const historyJson = json({ limit: '1mb' })
   app.use('/v1/me/live-history', (req: Request, res: Response, next: NextFunction) => req.method === 'PUT' ? historyJson(req, res, next) : next())
   app.useBodyParser('json', { limit: '256kb' })

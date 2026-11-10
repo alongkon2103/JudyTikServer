@@ -18,8 +18,8 @@ test('loopback proxy separates real client rate buckets and ignores a forged lef
  const app=await harness('loopback')
  try{
   const request=(forwarded:string)=>fetch(app.origin+'/v1/proxy-probe',{headers:{'x-forwarded-for':forwarded,'x-forwarded-proto':'https'}})
-  for(let n=0;n<120;n++){
-   const response=await request(`203.0.113.${n+1}, 198.51.100.7`)
+  for(let n=0;n<1200;n++){
+   const response=await request(`203.0.113.${n%254+1}, 198.51.100.7`)
    assert.equal(response.status,200)
    if(n===0)assert.deepEqual(await response.json(),{ip:'198.51.100.7',secure:true})
   }
