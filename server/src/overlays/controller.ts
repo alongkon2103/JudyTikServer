@@ -11,6 +11,12 @@ export class OverlaysController {
 
   private response(value: Awaited<ReturnType<OverlaysService['get']>>, req: SessionRequest, body?: unknown) {
     const features=String(req.headers['x-judytik-overlay-features']??'').split(',')
+    const hidden = [
+      ...(!features.includes('spin-multi-gifts')?['spinGiftIds']:[]),
+      ...(!features.includes('ranking-limit')?['rankLimit']:[]),
+      ...(!features.includes('spin-sound')?['spinSound','spinVolume']:[]),
+    ] as Array<'spinGiftIds'|'rankLimit'|'spinSound'|'spinVolume'>
+    if(hidden.length){value=structuredClone(value);for(const widget of Object.values(value.data.widgets))for(const key of hidden)delete widget[key]}
     if(!features.includes('top-likers-limit')){value=structuredClone(value);delete value.data.widgets['top-likers'].likerLimit}
     if(!features.includes('big-gift-ranking')){value=structuredClone(value);delete value.data.widgets['big-gift'].bigGiftLimit}
     if(!features.includes('spin-weights')){
@@ -40,7 +46,7 @@ export class OverlaysController {
 
   @Put() async save(@Req() req: SessionRequest, @Body() body: unknown, @Res({ passthrough: true }) res: Response) {
     if (req.headers['if-none-match'] !== undefined) throw new ApiError(400, 'INVALID_PRECONDITION')
-    const value = await this.overlays.save(req.verifiedSession, body, req.headers['if-match'], req.headers['x-request-id'] as string)
+    const value = await this.overlays.save(req.verifiedSession, body, req.headers['if-match'], req.headers['x-request-id'] as string, req.headers['x-judytik-overlay-features'])
     res.setHeader('etag', '"' + value.revision + '"')
     return this.response(value, req, body)
   }

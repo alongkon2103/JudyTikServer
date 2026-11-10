@@ -59,9 +59,9 @@ test('Legacy desktops receive their known widget shape without erasing saved Sli
  const old={headers:{},verifiedSession:{}} as SessionRequest
  const legacy=await controller.get(old,res)
  assert.equal(Object.hasOwn(legacy.data.widgets,'slider'),false);assert.equal(legacy.data.widgets['gift-jar'].theme,'plain-white')
- const current={...old,headers:{'x-judytik-overlay-features':'slider,big-gift-ranking,top-likers-limit'}} as unknown as SessionRequest
+ const current={...old,headers:{'x-judytik-overlay-features':'slider,big-gift-ranking,top-likers-limit,spin-multi-gifts,ranking-limit,spin-sound'}} as unknown as SessionRequest
  assert.deepEqual((await controller.get(current,res)).data,data)
- const expectedLegacy=structuredClone(data);delete expectedLegacy.widgets['big-gift'].bigGiftLimit;delete expectedLegacy.widgets['top-likers'].likerLimit
+ const expectedLegacy=structuredClone(data);delete expectedLegacy.widgets['big-gift'].bigGiftLimit;delete expectedLegacy.widgets['top-likers'].likerLimit;delete expectedLegacy.widgets.spin.spinSound;delete expectedLegacy.widgets.spin.spinVolume;delete expectedLegacy.widgets.leaderboard.rankLimit;delete expectedLegacy.widgets['gift-jar'].rankLimit
  assert.deepEqual((await controller.save(old,data,res)).data,expectedLegacy)
  assert.equal(data.widgets['gift-jar'].theme,'mochi-pals');assert.equal(data.widgets.slider.sliderItems?.length,1)
 })

@@ -5,6 +5,10 @@ export interface SpinOption {id:string;label:string;imageUrl?:string;imageBindin
 export function safeSpinImage(value:unknown):value is string
 export function validSpinOption(value:unknown):value is SpinOption
 export interface WidgetConfig {
+  spinGiftIds?: string[]
+  spinSound?: boolean
+  spinVolume?: number
+  rankLimit?: 5 | 10
   bigGiftLimit?: number
   likerLimit?: 5 | 10
   font: string

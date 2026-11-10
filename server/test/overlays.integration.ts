@@ -27,7 +27,7 @@ const document = () => {
   return data
 }
 const call = (user: Account, options: RequestInit = {}) => fetch(base + '/v1/me/overlays', {
-  ...options, headers: { 'content-type': 'application/json', 'x-judytik-overlay-features': 'slider,spin-weights,slider-item-colors,big-gift-ranking,top-likers-limit', authorization: 'Bearer ' + user.tokens.access_token, ...options.headers },
+  ...options, headers: { 'content-type': 'application/json', 'x-judytik-overlay-features': 'slider,spin-weights,slider-item-colors,big-gift-ranking,top-likers-limit,spin-multi-gifts,ranking-limit,spin-sound', authorization: 'Bearer ' + user.tokens.access_token, ...options.headers },
 })
 const save = (user: Account, body: unknown, revision = '0', requestId = randomUUID()) => call(user, {
   method: 'PUT', headers: { 'if-match': '"' + revision + '"', 'x-request-id': requestId }, body: JSON.stringify(body),

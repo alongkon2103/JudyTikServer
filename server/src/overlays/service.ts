@@ -18,8 +18,10 @@ export class OverlaysService {
     })
   }
 
-  async save(actor: VerifiedSession, input: unknown, match: unknown, requestId: string) {
+  async save(actor: VerifiedSession, input: unknown, match: unknown, requestId: string, features: unknown = undefined) {
     if (!validOverlayData(input)) throw new ApiError(400, 'INVALID_REQUEST')
+    const capabilities=String(features??'').split(',')
+    const optionFeatures={spinGiftIds:'spin-multi-gifts',rankLimit:'ranking-limit',spinSound:'spin-sound',spinVolume:'spin-sound'} as const
     const condition = precondition(match, undefined, false)
     if (condition.kind !== 'match') throw new ApiError(400, 'INVALID_PRECONDITION')
     return this.db.withUserContext(actor.userId, async tx => {
@@ -41,6 +43,13 @@ export class OverlaysService {
           data.widgets[kind] = hydrateOverlayData(current.data).widgets[kind]
       if(!Object.hasOwn(input.widgets['big-gift'],'bigGiftLimit')&&current&&validOverlayData(current.data)&&current.data.widgets['big-gift'].bigGiftLimit!==undefined)data.widgets['big-gift'].bigGiftLimit=current.data.widgets['big-gift'].bigGiftLimit
       if(!Object.hasOwn(input.widgets['top-likers'],'likerLimit')&&current&&validOverlayData(current.data)&&current.data.widgets['top-likers'].likerLimit!==undefined)data.widgets['top-likers'].likerLimit=current.data.widgets['top-likers'].likerLimit
+      if(current&&validOverlayData(current.data)){
+        for(const kind of Object.keys(input.widgets) as Array<keyof typeof input.widgets>){
+          const saved=current.data.widgets[kind]
+          for(const key of ['spinGiftIds','rankLimit','spinSound','spinVolume'] as const)
+            if(!capabilities.includes(optionFeatures[key])&&!Object.hasOwn(input.widgets[kind],key)&&saved&&Object.hasOwn(saved,key))data.widgets[kind][key]=saved[key]
+        }
+      }
       const row = current
         ? await tx.overlaysWorkspace.update({ where: { userId: actor.userId }, data: { data, revision: { increment: 1 } } })
         : await tx.overlaysWorkspace.create({ data: { userId: actor.userId, data } })

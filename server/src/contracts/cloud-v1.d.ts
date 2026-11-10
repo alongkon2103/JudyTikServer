@@ -773,6 +773,11 @@ export interface components {
             sliderDirection?: "left" | "right";
             sliderTextColor?: string;
             bigGiftLimit?: number;
+            spinGiftIds?: string[];
+            spinSound?: boolean;
+            spinVolume?: number;
+            /** @enum {integer} */
+            rankLimit?: 5 | 10;
             /**
              * @description Top Likers rows; omitted legacy setting displays Top 10.
              * @enum {integer}
