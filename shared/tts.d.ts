@@ -1,4 +1,6 @@
 export interface TtsData {
+  pitch?: number
+  messageDelayMs?: number
   audience?:import('./tts-audience.js').TtsAudience
   filter?: { enabled: boolean; blockedWords: string[]; excludedBasicWords?: string[] }
   version: 1

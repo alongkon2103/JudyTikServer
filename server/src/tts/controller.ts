@@ -8,7 +8,15 @@ import { TtsService } from './service.js'
 @UseGuards(SessionGuard)
 export class TtsController {
   constructor(@Inject(TtsService) private readonly tts: TtsService) {}
-  private response(value:{revision:string;data:unknown},req:SessionRequest){const result=structuredClone(value);if(req.headers['x-judytik-tts-features']!=='audience'&&result.data&&typeof result.data==='object')delete (result.data as Record<string,unknown>).audience;return result}
+  private response(value:{revision:string;data:unknown},req:SessionRequest){
+    const result=structuredClone(value),features=new Set(String(req.headers['x-judytik-tts-features']??'').split(',').map(value=>value.trim()))
+    if(result.data&&typeof result.data==='object'){
+      const data=result.data as Record<string,unknown>
+      if(!features.has('audience'))delete data.audience
+      if(!features.has('voice-controls')){delete data.pitch;delete data.messageDelayMs}
+    }
+    return result
+  }
 
   @Get() async get(@Req() req: SessionRequest, @Res({ passthrough: true }) res: Response) {
     const value = await this.tts.get(req.verifiedSession)

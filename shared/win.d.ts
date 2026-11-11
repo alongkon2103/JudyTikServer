@@ -20,3 +20,6 @@ export function defaultWinData():WinData
 export function validWinData(value:unknown):value is WinData
 export const fontOptions:Record<string,string>
 export function fontStack(font:string):string
+export function isCustomFont(font:unknown):boolean
+export function validFontChoice(font:unknown):boolean
+export function customFontFamily(font:string):string|null

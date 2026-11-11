@@ -110,6 +110,7 @@ model Session {
   revokedAt    DateTime? @map("revoked_at") @db.Timestamptz
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   device       Device   @relation(fields: [userId, deviceId], references: [userId, id], onDelete: Cascade, onUpdate: NoAction)
+  appPresences AppPresence[]
   livePresence LivePresence?
   livePresenceConnections LivePresenceConnection[]
   refreshTokens RefreshToken[]
@@ -471,5 +472,18 @@ model LivePresenceConnection {
  session Session @relation(fields:[sessionId],references:[id],onDelete:Cascade,onUpdate:NoAction)
  @@id([sessionId,connectionId])
  @@map("live_presence_connections")
+ @@schema("judytik")
+}
+
+model AppPresence {
+ sessionId String @map("session_id") @db.Uuid
+ connectionId String @map("connection_id") @db.Uuid
+ active Boolean @default(true)
+ sequence BigInt @default(0)
+ expiresAt DateTime @map("expires_at") @db.Timestamptz
+ lastSeenAt DateTime @map("last_seen_at") @db.Timestamptz
+ session Session @relation(fields:[sessionId],references:[id],onDelete:Cascade,onUpdate:NoAction)
+ @@id([sessionId,connectionId])
+ @@map("app_presences")
  @@schema("judytik")
 }

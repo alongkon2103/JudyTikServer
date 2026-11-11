@@ -1,3 +1,4 @@
+import {addAppPresenceOpenApi} from '../src/app-presence/openapi.js'
 import {addLivePresenceOpenApi} from '../src/live-presence/openapi.js'
 import {addGamesOpenApi} from '../src/games/openapi.js'
 import {addEntitlementsOpenApi} from '../src/entitlements/openapi.js'
@@ -198,6 +199,7 @@ const doc = {
     },
   },
 }
+addAppPresenceOpenApi(doc)
 addLivePresenceOpenApi(doc)
 addGamesOpenApi(doc)
 addEntitlementsOpenApi(doc)

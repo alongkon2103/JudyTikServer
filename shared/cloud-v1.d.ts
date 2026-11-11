@@ -730,6 +730,8 @@ export interface components {
                 excludedBasicWords?: ("fuck" | "fucking" | "fucked" | "fucker" | "motherfucker" | "motherfucking" | "shit" | "shitty" | "bullshit" | "bitch" | "bitches" | "asshole" | "arsehole" | "cunt" | "dick" | "dickhead" | "bastard" | "pussy" | "cock" | "เหี้ย" | "ไอ้เหี้ย" | "อีเหี้ย" | "สัส" | "สัด" | "ไอ้สัส" | "อีสัส" | "สัตว์นรก" | "ควย" | "ไอ้ควย" | "หี" | "เย็ด" | "เย็ดแม่" | "แม่ง" | "แม่เย็ด" | "หน้าหี" | "ส้นตีน")[];
             };
             audience?: components["schemas"]["TtsAudience"];
+            pitch?: number;
+            messageDelayMs?: number;
         };
         TtsDocument: {
             revision: string;

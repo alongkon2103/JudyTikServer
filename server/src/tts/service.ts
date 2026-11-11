@@ -28,7 +28,7 @@ export class TtsService {
       if ((current?.revision ?? 0n) !== condition.revision)
         throw new ApiError(412, 'TTS_VERSION_CONFLICT')
       const data = JSON.parse(JSON.stringify(input))
-      if(!Object.hasOwn(data,'audience')&&current&&validTtsData(current.data)&&current.data.audience)data.audience=current.data.audience
+      if(current&&validTtsData(current.data))for(const key of ['audience','pitch','messageDelayMs'] as const)if(!Object.hasOwn(data,key)&&Object.hasOwn(current.data,key))data[key]=current.data[key]
       const row = current
         ? await tx.ttsWorkspace.update({ where: { userId: actor.userId }, data: { data, revision: { increment: 1 } } })
         : await tx.ttsWorkspace.create({ data: { userId: actor.userId, data } })

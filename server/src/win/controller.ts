@@ -8,7 +8,7 @@ import {WinService} from './service.js'
 @UseGuards(SessionGuard)
 export class WinController {
  constructor(@Inject(WinService) private readonly win:WinService){}
- private response(value:{revision:string;data:unknown},req:SessionRequest){if(!validWinData(value.data))throw new ApiError(500,'WIN_DATA_INVALID');const data=structuredClone(value.data);if(req.headers['x-judytik-win-features']!=='spin-weights')delete data.slotWeights;return{...value,data}}
+ private response(value:{revision:string;data:unknown},req:SessionRequest){if(!validWinData(value.data))throw new ApiError(500,'WIN_DATA_INVALID');const data=structuredClone(value.data);const features=String(req.headers['x-judytik-win-features']??'').split(',');if(!features.includes('spin-weights'))delete data.slotWeights;if(!features.includes('custom-fonts')&&data.overlay.font.startsWith('custom:'))data.overlay.font='Judy';return{...value,data}}
  @Get()async get(@Req()req:SessionRequest,@Res({passthrough:true})res:Response){const value=await this.win.get(req.verifiedSession);res.setHeader('etag','"'+value.revision+'"');return this.response(value,req)}
- @Put()async save(@Req()req:SessionRequest,@Body()body:unknown,@Res({passthrough:true})res:Response){if(req.headers['if-none-match']!==undefined)throw new ApiError(400,'INVALID_PRECONDITION');const value=await this.win.save(req.verifiedSession,body,req.headers['if-match'],req.headers['x-request-id'] as string);res.setHeader('etag','"'+value.revision+'"');return this.response(value,req)}
+ @Put()async save(@Req()req:SessionRequest,@Body()body:unknown,@Res({passthrough:true})res:Response){if(req.headers['if-none-match']!==undefined)throw new ApiError(400,'INVALID_PRECONDITION');const value=await this.win.save(req.verifiedSession,body,req.headers['if-match'],req.headers['x-request-id'] as string,req.headers['x-judytik-win-features']);res.setHeader('etag','"'+value.revision+'"');return this.response(value,req)}
 }

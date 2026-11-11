@@ -197,6 +197,7 @@ try {
       'test/auth-http.integration.ts',
       'test/history.integration.ts',
         'test/live-presence.integration.ts',
+      'test/app-presence.integration.ts',
       'test/deployment.integration.ts',
       ],
     ],

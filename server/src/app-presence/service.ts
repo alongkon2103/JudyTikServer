@@ -1,0 +1,19 @@
+import {Inject,Injectable} from '@nestjs/common';
+import {PrismaService} from '../database/prisma.service.js';
+import type {Prisma} from '../generated/prisma/client.js';
+import type {VerifiedSession} from '../auth/auth.service.js';
+import {CLOCK,type Clock} from '../auth/clock.js';
+import {ApiError} from '../http/api-error.js';
+import {appConnectionId,appPresenceStartSchema,appPresenceHeartbeatSchema} from './contracts.js';
+type Row={connectionId:string;expiresAt:Date;active:boolean;sequence:bigint};
+const lease=(r:Row)=>({connectionId:r.connectionId,expiresAt:r.expiresAt.toISOString(),heartbeatAfterMs:60000});
+@Injectable()
+export class AppPresenceService {
+ constructor(@Inject(PrismaService) private readonly db:PrismaService,@Inject(CLOCK) private readonly clock:Clock){}
+ private async lock(tx:Prisma.TransactionClient,s:VerifiedSession){const rows=await tx.$queryRaw<any[]>`SELECT s.id FROM judytik.sessions s JOIN judytik.users u ON u.id=s.user_id WHERE s.id=${s.sessionId}::uuid AND s.user_id=${s.userId}::uuid AND s.revoked_at IS NULL AND s.expires_at>${this.clock.now()} AND u.disabled_at IS NULL AND u.merged_into_id IS NULL FOR UPDATE OF s`;if(!rows.length)throw new ApiError(401,'AUTH_UNAUTHORIZED');}
+ private async row(tx:Prisma.TransactionClient,s:VerifiedSession,id:string){return (await tx.$queryRaw<Row[]>`SELECT connection_id AS "connectionId",expires_at AS "expiresAt",active,sequence FROM judytik.app_presences WHERE session_id=${s.sessionId}::uuid AND connection_id=${id}::uuid`)[0];}
+ async start(s:VerifiedSession,body:unknown){const p=appPresenceStartSchema.safeParse(body);if(!p.success)throw new ApiError(400,'INVALID_REQUEST');const id=p.data.connectionId.toLowerCase();return this.db.withUserContext(s.userId,async tx=>{await this.lock(tx,s);const old=await this.row(tx,s,id);if(old){if(!old.active||+old.expiresAt<=+this.clock.now())throw new ApiError(409,'APP_PRESENCE_CLOSED');return lease(old);}const now=this.clock.now(),expiry=new Date(+now+150000);await tx.$executeRaw`INSERT INTO judytik.app_presences(session_id,connection_id,expires_at,last_seen_at) VALUES(${s.sessionId}::uuid,${id}::uuid,${expiry},${now})`;return lease({connectionId:id,expiresAt:expiry,active:true,sequence:0n});});}
+ async heartbeat(s:VerifiedSession,id:string,body:unknown){const p=appPresenceHeartbeatSchema.safeParse(body);if(!appConnectionId.safeParse(id).success||!p.success)throw new ApiError(400,'INVALID_REQUEST');id=id.toLowerCase();return this.db.withUserContext(s.userId,async tx=>{await this.lock(tx,s);const old=await this.row(tx,s,id),now=this.clock.now();if(!old||!old.active||+old.expiresAt<=+now)throw new ApiError(404,'APP_PRESENCE_EXPIRED');if(BigInt(p.data.sequence)<=old.sequence)return lease(old);const expiry=new Date(+now+150000);await tx.$executeRaw`UPDATE judytik.app_presences SET sequence=${BigInt(p.data.sequence)},expires_at=${expiry},last_seen_at=${now} WHERE session_id=${s.sessionId}::uuid AND connection_id=${id}::uuid`;return lease({...old,expiresAt:expiry});});}
+ async stop(s:VerifiedSession,id:string){if(!appConnectionId.safeParse(id).success)throw new ApiError(400,'INVALID_REQUEST');id=id.toLowerCase();await this.db.withUserContext(s.userId,async tx=>{await this.lock(tx,s);const now=this.clock.now();await tx.$executeRaw`INSERT INTO judytik.app_presences(session_id,connection_id,expires_at,last_seen_at,active) VALUES(${s.sessionId}::uuid,${id}::uuid,${now},${now},false) ON CONFLICT(session_id,connection_id) DO UPDATE SET active=false,expires_at=EXCLUDED.expires_at`;});}
+ async count(s:VerifiedSession){const now=this.clock.now();const [r]=await this.db.withUserContext(s.userId,async tx=>{await this.lock(tx,s);return tx.$queryRaw<{count:bigint}[]>`SELECT judytik.app_online_count(${now}::timestamptz) AS count`;});return {count:Number(r.count),serverTime:now.toISOString(),refreshAfterMs:60000};}
+}

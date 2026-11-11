@@ -14,6 +14,8 @@ const fields = (value, keys) => value !== null && typeof value === 'object' && !
 const events = ['comment', 'gift', 'follow']
 
 export function validTtsData(value) {
+  if(value&&Object.hasOwn(value,'pitch')){if(!Number.isFinite(value.pitch)||value.pitch<0.5||value.pitch>2)return false;const {pitch,...rest}=value;return validTtsData(rest)}
+  if(value&&Object.hasOwn(value,'messageDelayMs')){if(!Number.isInteger(value.messageDelayMs)||value.messageDelayMs<0||value.messageDelayMs>10000)return false;const {messageDelayMs,...rest}=value;return validTtsData(rest)}
   if(value&&Object.hasOwn(value,'audience')){if(!validTtsAudience(value.audience))return false;const {audience,...rest}=value;return validTtsData(rest)}
   return (fields(value, ['version', 'voiceId', 'speed', 'volume', 'read', 'templates'])
     || (fields(value, ['version', 'voiceId', 'speed', 'volume', 'read', 'templates', 'filter']) && validTtsFilter(value.filter)))

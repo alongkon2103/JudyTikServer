@@ -3053,6 +3053,16 @@
           },
           "audience": {
             "$ref": "#/components/schemas/TtsAudience"
+          },
+          "pitch": {
+            "type": "number",
+            "minimum": 0.5,
+            "maximum": 2
+          },
+          "messageDelayMs": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
           }
         }
       },
@@ -3305,11 +3315,26 @@
             "minItems": 1,
             "maxItems": 100,
             "uniqueItems": true,
-            "items": { "type": "string", "pattern": "^[1-9][0-9]{0,19}$" }
+            "items": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,19}$"
+            }
           },
-          "spinSound": { "type": "boolean" },
-          "spinVolume": { "type": "integer", "minimum": 0, "maximum": 100 },
-          "rankLimit": { "type": "integer", "enum": [5, 10] },
+          "spinSound": {
+            "type": "boolean"
+          },
+          "spinVolume": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "rankLimit": {
+            "type": "integer",
+            "enum": [
+              5,
+              10
+            ]
+          },
           "likerLimit": {
             "type": "integer",
             "enum": [

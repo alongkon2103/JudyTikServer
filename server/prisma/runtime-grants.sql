@@ -37,3 +37,8 @@ GRANT SELECT,INSERT ON judytik.account_merge_archives TO :"runtime_role";
 GRANT SELECT,INSERT,UPDATE ON judytik.live_presences TO :"runtime_role";
 -- Used connection IDs remain append-only until their owning session is deleted.
 GRANT SELECT,INSERT ON judytik.live_presence_connections TO :"runtime_role";
+
+-- Private desktop activity rows; only the fixed function can aggregate accounts.
+GRANT SELECT,INSERT ON judytik.app_presences TO :"runtime_role";
+GRANT UPDATE(active,sequence,expires_at,last_seen_at) ON judytik.app_presences TO :"runtime_role";
+GRANT EXECUTE ON FUNCTION judytik.app_online_count(timestamptz) TO :"runtime_role";
