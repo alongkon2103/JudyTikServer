@@ -29,19 +29,24 @@ export class GamesController {
     @Res({ passthrough: true })
     res: Response) { return etag(res, await this.service.get(id)); }
     @Get(':id/presets')
+    @UseGuards(SessionGuard)
     presets(
+    @Req() req:SessionRequest,
+    @Res({passthrough:true}) res:Response,
     @Param('id')
     id: string,
     @Query()
-    query: unknown) { return this.service.gamePresets(id, false, query); }
+    query: unknown) { res.setHeader('Cache-Control','no-store');return this.service.gamePresets(id, false, query, req.verifiedSession); }
     @Get(':id/presets/:presetId')
+    @UseGuards(SessionGuard)
     async preset(
+    @Req() req:SessionRequest,
     @Param('id')
     id: string,
     @Param('presetId')
     presetId: string,
     @Res({ passthrough: true })
-    res: Response) { return etag(res, await this.service.preset(id, presetId)); }
+    res: Response) { res.setHeader('Cache-Control','no-store');return etag(res, await this.service.preset(id, presetId, false, req.verifiedSession)); }
     @Post(':id/presets/:presetId/import')
     @UseGuards(SessionGuard)
     async importPreset(

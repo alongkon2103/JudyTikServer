@@ -11,6 +11,7 @@ export interface ServerConfig {
   apiOrigin?: string
   auth?: AuthConfig
   live?: LiveConfig
+  shop?: {baseUrl:string;serviceKey:string}
 }
 export const CONFIG = Symbol('ServerConfig')
 const invalid = (name: string): never => {
@@ -53,6 +54,15 @@ export function readConfig(env: NodeJS.ProcessEnv): ServerConfig {
     invalid('ADMIN_API_KEY')
   const proxy = env.TRUST_PROXY ?? 'false'
   if (!['false', 'loopback'].includes(proxy)) invalid('TRUST_PROXY')
+  let shop:ServerConfig['shop']
+  const shopBase=env.JUDYSHOP_BASE_URL?.trim(),shopKey=env.JUDYTIK_SHOP_SERVICE_KEY
+  if(shopBase||shopKey){
+    let shopUrl:URL
+    try{shopUrl=new URL(shopBase!)}catch{invalid('JUDYSHOP_BASE_URL')}
+    if(shopUrl!.username||shopUrl!.password||shopUrl!.search||shopUrl!.hash||shopUrl!.pathname!=='/'||!(shopUrl!.protocol==='https:'||nodeEnv!=='production'&&shopUrl!.protocol==='http:'&&['localhost','127.0.0.1','[::1]'].includes(shopUrl!.hostname)))invalid('JUDYSHOP_BASE_URL')
+    if(!shopKey||shopKey.length<32||shopKey.length>256||/[\s\x00-\x1f\x7f]/.test(shopKey))invalid('JUDYTIK_SHOP_SERVICE_KEY')
+    shop={baseUrl:shopUrl!.origin,serviceKey:shopKey!}
+  }
   return {
     trustProxy: proxy === 'loopback' ? 'loopback' : false,
     nodeEnv: nodeEnv as ServerConfig['nodeEnv'],
@@ -63,5 +73,6 @@ export function readConfig(env: NodeJS.ProcessEnv): ServerConfig {
     apiOrigin: env.API_ORIGIN === undefined ? undefined : readApiOrigin(env),
     auth: readAuthConfig(env),
     live: readLiveConfig(env),
+    shop,
   }
 }

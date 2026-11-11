@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { categoryWrite, gameWrite, presetWrite, reorderWrite, gamePresetImport } from './contracts.js';
 import {gameFileFields,presetFileFields,presetReplacementFields} from './files.js';
+import {shopResponse} from './licenses.js';
 export function addGamesOpenApi(doc: any) {
     const json = (s:z.ZodType,name:string,input=false) => {
         const {$schema,...value}=z.toJSONSchema(s,{io:input?'input':'output'});
@@ -17,7 +18,7 @@ export function addGamesOpenApi(doc: any) {
         doc.components.schemas[name] = json(s,name,name.endsWith('Write') || ['GameReorder','GamePresetImport'].includes(name));
     const ref = (name: string) => ({ $ref: '#/components/schemas/' + name });
     const body = (name: string) => ({ required: true, content: { 'application/json': { schema: ref(name) } } });
-    const errors = Object.fromEntries([400, 401, 404, 409, 412, 413, 422, 428, 429, 500].map(n => [n, { description: 'Error envelope', content: { 'application/json': { schema: ref('Error') } } }]));
+    const errors = Object.fromEntries([400, 401, 403, 404, 409, 412, 413, 422, 428, 429, 500, 503].map(n => [n, { description: 'Error envelope', content: { 'application/json': { schema: ref('Error') } } }]));
     const parameter = (name: string) => ({ name, in: 'path', required: true, schema: { type: 'string', format: 'uuid' } });
     const match = { name: 'If-Match', in: 'header', required: true, schema: { type: 'string', pattern: '^"[1-9][0-9]{0,18}"$' } };
     const operation = (operationId: string, schema: any, parameters: any[] = [], admin = false, write?: string, created = false) => ({ operationId, security: admin ? [{ adminServiceKey: [] }] : [], parameters, ...(write ? { requestBody: body(write) } : {}), responses: { [created ? '201' : '200']: { description: 'Success. Mutations return a strong ETag; DELETE archives and retains history.', headers: { ETag: { schema: { type: 'string' } } }, content: { 'application/json': { schema } } }, ...errors } });
@@ -29,6 +30,13 @@ export function addGamesOpenApi(doc: any) {
     doc.paths['/games/{id}'] = { get: operation('getPublishedGame', ref('Game'), [parameter('id')]) };
     doc.paths['/games/{id}/presets'] = { get: operation('listPublishedGamePresets', items('GamePreset'), [parameter('id')]) };
     doc.paths['/games/{id}/presets/{presetId}'] = { get: operation('getPublishedGamePreset', ref('GamePreset'), [parameter('id'), parameter('presetId')]) };
+    for(const path of ['/games/{id}/presets','/games/{id}/presets/{presetId}']){
+        doc.paths[path].get.security=[{desktopSession:[]}];
+        doc.paths[path].get.description='Requires verified-email purchase access to parent Game.slug. 403 GAME_LICENSE_REQUIRED or GAME_LICENSE_EMAIL_REQUIRED; 503 GAME_LICENSE_UNAVAILABLE. No PRO bypass. Response Cache-Control: no-store.';
+    }
+    doc.components.schemas.GameLicenseSnapshot=json(z.object({state:z.enum(['ready','email_required']),licenses:shopResponse.shape.licenses,checkedAt:z.iso.datetime()}).strict(),'GameLicenseSnapshot');
+    const lookup=operation('getMyGameLicenses',ref('GameLicenseSnapshot'));lookup.security=[{desktopSession:[]}] as any;
+    doc.paths['/me/game-licenses']={get:{...lookup,description:'Verified account email resolved on server; no caller email accepted. Returns game-level access for every preset; no customer identifiers or shop key. Cache-Control: no-store. Shop unavailable returns 503, not empty licenses.'}};
     doc.components.schemas.GamePresetImportResult = { type: 'object', additionalProperties: false, required: ['preset', 'warnings', 'skippedActions'], properties: { preset: ref('Preset'), warnings: { type: 'array', maxItems: 100, items: { type: 'string', maxLength: 500 } }, skippedActions: { type: 'integer', minimum: 0, maximum: 100 } } };
     const imp = operation('importCompatibleGamePreset', ref('GamePresetImportResult'), [parameter('id'), parameter('presetId')], false, undefined, true);
     imp.security = [{ desktopSession: [] }] as any;

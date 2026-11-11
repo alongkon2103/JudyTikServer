@@ -13,7 +13,7 @@ import {PresetsService} from '../src/presets/service.js';
 import {configureApp} from '../src/http/configure.js';
 import {readConfig} from '../src/config/env.js';
 import {authHarness} from './support/auth-flow.js';
-const config=readConfig(process.env),db=new PrismaService(config),service=new GamesService(db,new PresetsService(db));
+const config=readConfig(process.env),db=new PrismaService(config),service=new GamesService(db,new PresetsService(db),{require:async()=>{}} as any);
 const source=JSON.parse(readFileSync(new URL('./fixtures/native-export.judytik.json',import.meta.url),'utf8')).preset;
 let app:NestExpressApplication,base:string,cover:Buffer;
 before(async()=>{await db.onModuleInit();cover=await sharp({create:{width:40,height:40,channels:3,background:'#dc1684'}}).webp().toBuffer();const m=await Test.createTestingModule({imports:[AppModule.register({...config,auth:authHarness(db).config})]}).compile();app=configureApp(m.createNestApplication<NestExpressApplication>({logger:false}));await app.listen(0,'127.0.0.1');base=await app.getUrl();});
@@ -43,7 +43,7 @@ test('Admin can list, read, edit metadata, replace files/covers, add presets and
 test('cover replacement rolls back bytes and game revision if its audit insert fails',async()=>{
  const value=await service.importFile({slug:'cover-rollback-'+randomUUID(),name:'G',description:'',platform:'pc',categoryId:null,status:'published'},source,cover,base,randomUUID());
  const failingDb={client:{$transaction:(run:any)=>db.client.$transaction(tx=>run(new Proxy(tx,{get(target,key){if(key==='auditEvent')return{create:async()=>{throw Error('Injected audit failure');}};return Reflect.get(target,key);}})))}};
- const failing=new GamesService(failingDb as any,new PresetsService(db));
+ const failing=new GamesService(failingDb as any,new PresetsService(db),{require:async()=>{}} as any);
  await assert.rejects(failing.replaceCover(value.game.id,Buffer.from('different'),'"1"',base,randomUUID()),/Injected audit failure/);
  assert.equal((await service.get(value.game.id,true)).revision,'1');assert.deepEqual(await service.cover(value.game.id,true),cover);
 });

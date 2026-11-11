@@ -13,7 +13,7 @@ import {PresetsService} from '../src/presets/service.js';
 import {configureApp} from '../src/http/configure.js';
 import {readConfig} from '../src/config/env.js';
 import {authHarness} from './support/auth-flow.js';
-const config=readConfig(process.env),db=new PrismaService(config),service=new GamesService(db,new PresetsService(db));
+const config=readConfig(process.env),db=new PrismaService(config),service=new GamesService(db,new PresetsService(db),{require:async()=>{}} as any);
 const source=JSON.parse(readFileSync(new URL('./fixtures/native-export.judytik.json',import.meta.url),'utf8')).preset;
 let app:NestExpressApplication,base:string,cover:Buffer;
 before(async()=>{
@@ -57,13 +57,13 @@ test('real multipart HTTP import preserves commands and reports unresolved media
  const response=await fetch(base+'/v1/admin/games/import',{method:'POST',headers:{authorization:'Bearer '+config.adminApiKey},body:form});
  assert.equal(response.status,201);const result=await response.json();assert.equal(result.warnings.length,1);
  assert.deepEqual(result.preset.payload,payload);
- assert.deepEqual((await service.preset(result.game.id,result.preset.id)).payload,payload);
+ assert.deepEqual((await service.preset(result.game.id,result.preset.id,true)).payload,payload);
 });
 test('late audit failure rolls back game, cover, preset and version instead of leaving a partial import',async()=>{
  const slug='rollback-'+randomUUID();
  const before=await Promise.all([db.client.gameCover.count(),db.client.gamePreset.count(),db.client.gamePresetVersion.count()]);
  const failingDb={client:{$transaction:(run:any)=>db.client.$transaction(tx=>run(new Proxy(tx,{get(target,key){if(key==='auditEvent')return {create:async()=>{throw new Error('Injected audit failure');}};return Reflect.get(target,key);}})))}};
- const failing=new GamesService(failingDb as any,new PresetsService(db));
+ const failing=new GamesService(failingDb as any,new PresetsService(db),{require:async()=>{}} as any);
  await assert.rejects(failing.importFile({slug,name:'G',description:'',platform:'pc',categoryId:null,status:'draft'},source,cover,base,randomUUID()),/Injected audit failure/);
  assert.equal(await db.client.game.count({where:{slug}}),0);
  const after=await Promise.all([db.client.gameCover.count(),db.client.gamePreset.count(),db.client.gamePresetVersion.count()]);

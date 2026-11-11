@@ -9,7 +9,7 @@ import { PrismaService } from '../src/database/prisma.service.js';
 import { readConfig } from '../src/config/env.js';
 import { GamesService } from '../src/games/service.js';
 import { PresetsService } from '../src/presets/service.js';
-const db = new PrismaService(readConfig(process.env)), service = new GamesService(db, new PresetsService(db)), requestId = randomUUID();
+const db = new PrismaService(readConfig(process.env)), service = new GamesService(db, new PresetsService(db),{require:async()=>{}} as any), requestId = randomUUID();
 before(() => db.onModuleInit());
 after(() => db.onModuleDestroy());
 test('Postgres runtime catalog mutations enforce revision conflicts, rollback reorder and retain immutable preset history', async () => {
@@ -75,7 +75,7 @@ test('all Judy game presets import into real account storage with catalog warnin
             await assert.rejects(presets.get(other.session, targetId), /PRESET_NOT_FOUND/);
             await assert.rejects(service.importPreset(other.session, game.id, preset.id, input, randomUUID()), /PRESET_NOT_FOUND/);
             importedRules += first.preset.actions.length; importedEffects += first.preset.actions.reduce((n, a) => n + a.effects.length, 0); skipped += first.skippedActions; warnings += first.warnings.length;
-            assert.deepEqual((await service.preset(game.id, preset.id)).payload, src.payload);
+            assert.deepEqual((await service.preset(game.id, preset.id,true)).payload, src.payload);
         }
         assert.deepEqual({ importedRules, importedEffects, skipped, warnings }, { importedRules: 234, importedEffects: 238, skipped: 5, warnings: 5 });
         assert.equal((await presets.list(account.session, { limit: 100 })).items.length, 19);

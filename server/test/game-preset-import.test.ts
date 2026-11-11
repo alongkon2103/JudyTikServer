@@ -44,7 +44,7 @@ function harness() {
     const rows = new Map<string, any>(), writes: any[] = [], actor = { userId: randomUUID(), sessionId: randomUUID() } as any;
     const row = { id: randomUUID(), revision: '1', name: 'Judy Climb', format: 'game-event-v1', payload: source() };
     const presets = { async save(user: any, id: string, payload: any) { if (rows.has(user.userId + id)) throw new ApiError(412, 'PRESET_VERSION_CONFLICT'); const value = { id, ...payload, revision: '1' }; rows.set(user.userId + id, value); writes.push(value); return { value }; }, async get(user: any, id: string) { const value = rows.get(user.userId + id); if (!value) throw new ApiError(404, 'PRESET_NOT_FOUND'); return value; } };
-    const service = new GamesService({ client: { gift: { findMany: async () => gifts } } } as any, presets as any); service.preset = async () => structuredClone(row);
+    const service = new GamesService({ client: { gift: { findMany: async () => gifts } } } as any, presets as any,{require:async()=>{}} as any); service.preset = async () => structuredClone(row);
     return { service, row, rows, writes, actor };
 }
 test('import creates independent saved preset and retries without another write or overwriting edits', async () => {

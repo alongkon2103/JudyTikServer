@@ -1,3 +1,4 @@
+import {GameLicensesService,GameLicensesController} from './games/licenses.js'
 import {AppPresenceController,AppPresenceCountController} from './app-presence/controller.js'
 import {AppPresenceService} from './app-presence/service.js'
 import {LivePresenceController,LiveDirectoryController} from './live-presence/controller.js'
@@ -75,7 +76,7 @@ export class AppModule {
       controllers: [
         AdminUsersController,
         EntitlementsAdminController,
-        HealthController, AppPresenceController, AppPresenceCountController, HistoryController, LivePresenceController, LiveDirectoryController,
+        GameLicensesController, HealthController, AppPresenceController, AppPresenceCountController, HistoryController, LivePresenceController, LiveDirectoryController,
         GamesController, GameCategoriesController, AdminGameCategoriesController, AdminGamesController, GameFilesController,
         GiftsController,
         AdminGiftsController,
@@ -89,7 +90,7 @@ export class AppModule {
         { provide: CONFIG, useValue: config },
         PrismaService,
         { provide: EulerGiftClient, useValue: euler },
-        AppPresenceService, GiftsService, GamesService, HistoryService, LivePresenceService,
+        GameLicensesService, AppPresenceService, GiftsService, GamesService, HistoryService, LivePresenceService,
         AdminGuard,
         { provide: CLOCK, useValue: systemClock },
         {
