@@ -1,3 +1,4 @@
+import {normalizeGamePlatform,platformCategoryId} from '../../../shared/game-presentation.js';
 import { Inject, Injectable } from '@nestjs/common';
 import {GameLicensesService} from './licenses.js';
 import { randomUUID } from 'node:crypto';
@@ -30,9 +31,10 @@ export class GamesService {
         return Buffer.from(row.data);
     }
     async importFile(fields:z.infer<typeof gameFileFields>,payload:ReturnType<typeof validatePreset>,cover:Buffer,origin:string,requestId:string) {
-        const {presetName,...gameFields}=fields;
+        const {presetName,...gameFields}=fields;gameFields.platform=normalizeGamePlatform(gameFields.platform);
         const warnings=presetFileWarnings(payload);
         return this.locked(async tx=>{
+            if(!gameFields.categoryId)gameFields.categoryId=platformCategoryId(await tx.gameCategory.findMany({where:{status:'active'}}),gameFields.platform);
             if(gameFields.categoryId) {
                 const category=await tx.gameCategory.findUnique({where:{id:gameFields.categoryId}});
                 if(!category || category.status!=='active')throw new ApiError(400,'GAME_CATEGORY_UNAVAILABLE');
@@ -67,9 +69,9 @@ export class GamesService {
     }
     async categories(admin = false) { return { items: dto(await this.db.client.gameCategory.findMany({ where: admin ? {} : { status: 'active' }, orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] })) }; }
     async list(input: unknown, admin = false) { const q = parse(listQuery, input); if (!admin && q.status && q.status !== 'published')
-        throw new ApiError(400, 'INVALID_REQUEST'); const where: Prisma.GameWhereInput = { ...(admin ? (q.status ? { status: q.status } : {}) : visible), ...(q.categoryId ? { categoryId: q.categoryId } : {}), ...(q.q ? { AND: [{ OR: [{ name: { contains: q.q.replace(/[\\%_]/g, '\\$&'), mode: 'insensitive' } }, { description: { contains: q.q.replace(/[\\%_]/g, '\\$&'), mode: 'insensitive' } }] }] } : {}) }; return this.db.client.$transaction(async (tx) => { const total = await tx.game.count({ where }); const rows = await tx.game.findMany({ where, orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }], skip: (q.page - 1) * q.pageSize, take: q.pageSize }); return { items: dto(rows), total, page: q.page, pageSize: q.pageSize, totalPages: Math.ceil(total / q.pageSize) }; }, { isolationLevel: 'RepeatableRead' }); }
+        throw new ApiError(400, 'INVALID_REQUEST'); const where: Prisma.GameWhereInput = { ...(admin ? (q.status ? { status: q.status } : {}) : visible), ...(q.categoryId ? { categoryId: q.categoryId } : {}), ...(q.q ? { AND: [{ OR: [{ name: { contains: q.q.replace(/[\\%_]/g, '\\$&'), mode: 'insensitive' } }, { description: { contains: q.q.replace(/[\\%_]/g, '\\$&'), mode: 'insensitive' } }] }] } : {}) }; return this.db.client.$transaction(async (tx) => { const total = await tx.game.count({ where }); const rows = await tx.game.findMany({ where, orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }], skip: (q.page - 1) * q.pageSize, take: q.pageSize }); return { items: dto(rows.map(row=>({...row,platform:normalizeGamePlatform(row.platform)}))), total, page: q.page, pageSize: q.pageSize, totalPages: Math.ceil(total / q.pageSize) }; }, { isolationLevel: 'RepeatableRead' }); }
     async get(id: string, admin = false) { uuid(id); const row = await this.db.client.game.findFirst({ where: { id, ...(admin ? {} : visible) } }); if (!row)
-        throw new ApiError(404, 'GAME_NOT_FOUND'); return dto(row); }
+        throw new ApiError(404, 'GAME_NOT_FOUND'); return dto({...row,platform:normalizeGamePlatform(row.platform)}); }
     async gamePresets(id: string, admin = false, input: unknown = {}, actor?:VerifiedSession) { const game=await this.get(id, admin);if(!admin)await this.licenses.require(actor,game.slug); const q = parse(pageQuery, input); const items = await this.db.client.gamePreset.findMany({ where: { gameId: id, ...(admin ? {} : { status: 'published' }) }, orderBy: [{ isDefault: 'desc' }, { id: 'asc' }], skip: (q.page - 1) * q.pageSize, take: q.pageSize + 1 }); return { items: dto(items.slice(0, q.pageSize)), page: q.page, pageSize: q.pageSize, hasMore: items.length > q.pageSize }; }
     async preset(id: string, presetId: string, admin = false, actor?:VerifiedSession) { const game=await this.get(id, admin);if(!admin)await this.licenses.require(actor,game.slug); uuid(presetId); const row = await this.db.client.gamePreset.findFirst({ where: { id: presetId, gameId: id, ...(admin ? {} : { status: 'published' }) } }); if (!row)
         throw new ApiError(404, 'GAME_PRESET_NOT_FOUND'); return dto(row); }
@@ -109,6 +111,7 @@ export class GamesService {
             uuid(gameId);
         const revision = id ? matchRevision(match) : undefined;
         const data: any = kind === 'category' ? parse(categoryWrite, input) : kind === 'game' ? parse(gameWrite, input) : parse(presetWrite, input);
+        if(kind==='game')data.platform=normalizeGamePlatform(data.platform);
         if (kind === 'preset' && data.isDefault && data.status !== 'published')
             throw new ApiError(400, 'GAME_DEFAULT_MUST_BE_PUBLISHED');
         if (kind === 'preset' && data.format === 'action-preset-v1') {
@@ -117,6 +120,7 @@ export class GamesService {
         ;
         return this.locked(async (tx) => {
             const model = kind === 'category' ? tx.gameCategory : kind === 'game' ? tx.game : tx.gamePreset;
+            if(kind==='game'&&!id&&!data.categoryId)data.categoryId=platformCategoryId(await tx.gameCategory.findMany({where:{status:'active'}}),data.platform);
             const current: any = id ? await (model as any).findUnique({ where: { id } }) : null;
             if (id && (!current || (kind === 'preset' && current.gameId !== gameId)))
                 throw new ApiError(404, 'GAME_RESOURCE_NOT_FOUND');
