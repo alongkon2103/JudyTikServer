@@ -1,3 +1,4 @@
+import {proGrants} from './support/plan-access.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {defaultWinData} from '../../shared/win.js'
@@ -17,7 +18,7 @@ test('Old desktop responses omit weights without mutating storage; capable clien
 test('Unrelated writes from an older desktop preserve saved odds',async()=>{
  const winData={...defaultWinData(),slotWeights:[0,10,20,30,40,50]},overlayData=defaultOverlayData();overlayData.widgets.spin.spinOptions=overlayData.widgets.spin.options.map((label,i)=>({id:'slot-'+i,label,weight:i?0:100}))
  const rows:any={winWorkspace:{data:winData,revision:1n},overlaysWorkspace:{data:overlayData,revision:1n}},saved:any={}
- const tx:any={$queryRaw:async()=>[],auditEvent:{create:async()=>({})}}
+ const tx:any={entitlementGrant:proGrants,$queryRaw:async()=>[],auditEvent:{create:async()=>({})}}
  for(const name of Object.keys(rows))tx[name]={findUnique:async()=>rows[name],update:async({data}:any)=>{saved[name]=data.data;return{data:data.data,revision:2n}}}
  const db={withUserContext:async(_owner:string,fn:any)=>fn(tx)},actor={userId:'a',sessionId:'s'} as any
  const oldWin=defaultWinData();oldWin.count=100;await new WinService(db as any).save(actor,oldWin,'"1"','request');assert.deepEqual(saved.winWorkspace.slotWeights,winData.slotWeights)
@@ -29,7 +30,7 @@ test('Slider colors are projected for old desktops, preserved on old writes and 
  const doc={revision:'1',data},res={setHeader(){}} as any,controller=new OverlaysController({get:async()=>doc} as any)
  const old=await controller.get({headers:{'x-judytik-overlay-features':'slider'},verifiedSession:{}} as any,res);assert(!Object.hasOwn((old.data.widgets as any).slider.sliderItems[0],'textColor'));assert.equal(data.widgets.slider.sliderItems[0].textColor,'#FF0000')
  const current=await controller.get({headers:{'x-judytik-overlay-features':'slider,spin-weights,slider-item-colors'},verifiedSession:{}} as any,res);assert.equal((current.data.widgets as any).slider.sliderItems[0].textColor,'#FF0000')
- let saved:any;const tx={$queryRaw:async()=>[],overlaysWorkspace:{findUnique:async()=>({data,revision:1n}),update:async({data}:any)=>{saved=data.data;return{data:saved,revision:2n}}},auditEvent:{create:async()=>({})}},service=new OverlaysService({withUserContext:async(_owner:string,fn:any)=>fn(tx)} as any),actor={userId:'a',sessionId:'s'} as any
+ let saved:any;const tx={entitlementGrant:proGrants,$queryRaw:async()=>[],overlaysWorkspace:{findUnique:async()=>({data,revision:1n}),update:async({data}:any)=>{saved=data.data;return{data:saved,revision:2n}}},auditEvent:{create:async()=>({})}},service=new OverlaysService({withUserContext:async(_owner:string,fn:any)=>fn(tx)} as any),actor={userId:'a',sessionId:'s'} as any
  const legacy=structuredClone(data);for(const item of legacy.widgets.slider.sliderItems!)delete item.textColor;await service.save(actor,legacy,'"1"','request');assert.equal(saved.widgets.slider.sliderItems[0].textColor,'#FF0000')
  const reset=structuredClone(data);reset.widgets.slider.sliderItems![0].textColor=null;await service.save(actor,reset,'"1"','request');assert.equal(saved.widgets.slider.sliderItems[0].textColor,null)
 })

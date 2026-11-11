@@ -1,3 +1,5 @@
+import {CLOCK,type Clock,systemClock} from '../auth/clock.js'
+import {userHasPro,requirePro} from '../entitlements/plan-access.js'
 import { Inject, Injectable } from '@nestjs/common'
 import { PrismaService } from '../database/prisma.service.js'
 import type { VerifiedSession } from '../auth/auth.service.js'
@@ -8,7 +10,7 @@ import { audit } from '../audit/write.js'
 
 @Injectable()
 export class SoundpadService {
-  constructor(@Inject(PrismaService) private readonly db: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly db: PrismaService, @Inject(CLOCK) private readonly clock: Clock = systemClock) {}
 
   async get(actor: VerifiedSession, playModes = false) {
     return this.db.withUserContext(actor.userId, async tx => {
@@ -27,6 +29,7 @@ export class SoundpadService {
       const current = await tx.soundpadWorkspace.findUnique({ where: { userId: actor.userId } })
       if ((current?.revision ?? 0n) !== condition.revision)
         throw new ApiError(412, 'SOUNDPAD_VERSION_CONFLICT')
+      requirePro(await userHasPro(tx,actor.userId,this.clock))
       const data = JSON.parse(JSON.stringify(input))
       if (!playModes && current && validSoundpadData(current.data)) {
         const modes = new Map(current.data.pads.map(pad => [pad.id.toLowerCase(), pad.playMode]))

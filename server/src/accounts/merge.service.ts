@@ -1,3 +1,5 @@
+import {userHasPro,requirePro,assertOverlayPlan} from '../entitlements/plan-access.js'
+import {hydrateOverlayData} from '../../../shared/overlays.js'
 import {Inject,Injectable} from '@nestjs/common'
 import {randomUUID} from 'node:crypto'
 import type {Prisma} from '../generated/prisma/client.js'
@@ -148,6 +150,8 @@ export class AccountMergeService{
    if(input.module==='overlaysWorkspace')for(const option of value.widgets?.spin?.spinOptions??[]){const copied=(row.data as any).copiedPresetIds?.[option.actionId];if(copied)option.actionId=copied}
    const valid=input.module==='settings'?['dark','light'].includes(value.theme)&&['th','en','es'].includes(value.language):({winWorkspace:validWinData,soundpadWorkspace:validSoundpadData,ttsWorkspace:validTtsData,overlaysWorkspace:validOverlayData} as any)[input.module](value)
    if(!valid)throw new ApiError(409,'ACCOUNT_BACKUP_INCOMPATIBLE')
+   if(input.module==='winWorkspace'||input.module==='soundpadWorkspace')requirePro(await userHasPro(tx,actor.userId,this.clock))
+   if(input.module==='overlaysWorkspace')assertOverlayPlan(await userHasPro(tx,actor.userId,this.clock),hydrateOverlayData(value),current?.data)
    await archive(tx,actor.userId,actor.userId,'restore',await snapshot(tx,actor.userId),this.clock.now())
    const write=input.module==='settings'?value:{data:value}
    if(current)await model.update({where:{userId:actor.userId},data:{...write,revision:{increment:1}}})

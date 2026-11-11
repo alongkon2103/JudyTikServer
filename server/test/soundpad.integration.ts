@@ -1,3 +1,4 @@
+import {grantTestPro} from './support/pro-account.js'
 import 'reflect-metadata'
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
@@ -15,6 +16,7 @@ import { authHarness } from './support/auth-flow.js'
 const config = readConfig(process.env), db = new PrismaService(config), h = authHarness(db)
 const owner = new Client({ connectionString: process.env.TEST_ADMIN_DATABASE_URL })
 type Account = Awaited<ReturnType<typeof h.signIn>>
+const signInPro=async(options:Parameters<typeof h.signIn>[0]={})=>{const account=await h.signIn(options);await grantTestPro(db,account.session.userId,h.clock);return account}
 let app: NestExpressApplication, base: string
 const document = () => ({ version: 1, volume: 75, pads: [{
   id: randomUUID(), name: 'Air horn', category: 'reaction', bindingId: randomUUID(),
@@ -47,7 +49,7 @@ test('Soundpad HTTP requires native session authorization', async () => {
 })
 
 test('Soundpad defaults, writes, same-account restore and audit are account scoped', async () => {
-  const subject = randomUUID(), a = await h.signIn({ subject }), same = await h.signIn({ subject }), other = await h.signIn()
+  const subject = randomUUID(), a = await signInPro({ subject }), same = await signInPro({ subject }), other = await signInPro()
   const initial = await call(a)
   assert.equal(initial.status, 200)
   assert.equal(initial.headers.get('etag'), '"0"')
@@ -67,7 +69,7 @@ test('Soundpad defaults, writes, same-account restore and audit are account scop
 })
 
 test('Soundpad rejects invalid documents and preconditions without changing stored data', async () => {
-  const a = await h.signIn(), changed = document()
+  const a = await signInPro(), changed = document()
   assert.equal((await call(a, { method: 'PUT', body: JSON.stringify(changed) })).status, 428)
   for (const match of ['0', '*', 'W/"0"', '"01"', '"-1"'])
     assert.equal((await call(a, { method: 'PUT', headers: { 'if-match': match }, body: JSON.stringify(changed) })).status, 400)
@@ -78,7 +80,7 @@ test('Soundpad rejects invalid documents and preconditions without changing stor
 })
 
 test('Soundpad optimistic writes serialize and preserve the winning document', async () => {
-  const a = await h.signIn(), first = document(), second = { ...document(), volume: 20 }
+  const a = await signInPro(), first = document(), second = { ...document(), volume: 20 }
   const results = await Promise.all([save(a, first), save(a, second)])
   assert.deepEqual(results.map(r => r.status).sort(), [200, 412])
   const conflict = await results.find(r => r.status === 412)!.json()
@@ -90,7 +92,7 @@ test('Soundpad optimistic writes serialize and preserve the winning document', a
 })
 
 test('Soundpad RLS hides foreign documents and forbids foreign writes and owner changes', async () => {
-  const a = await h.signIn(), b = await h.signIn(), c = await h.signIn(), changed = document()
+  const a = await signInPro(), b = await signInPro(), c = await signInPro(), changed = document()
   assert.equal((await save(a, changed)).status, 200)
   assert.equal((await save(b, document())).status, 200)
   assert.equal((await db.client.$queryRaw<any[]>`SELECT * FROM judytik.soundpad_workspaces`).length, 0)
@@ -103,7 +105,7 @@ test('Soundpad RLS hides foreign documents and forbids foreign writes and owner 
 })
 
 test('Soundpad audit failure rolls back the document write', async () => {
-  const a = await h.signIn()
+  const a = await signInPro()
   await owner.query(`CREATE FUNCTION judytik.reject_soundpad_audit_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.actor_user_id='${a.session.userId}'::uuid AND NEW.event_name='soundpad.updated' THEN RAISE EXCEPTION 'fixture audit failure'; END IF;RETURN NEW; END $$;CREATE TRIGGER reject_soundpad_audit_test BEFORE INSERT ON judytik.audit_events FOR EACH ROW EXECUTE FUNCTION judytik.reject_soundpad_audit_test()`)
   try {
     assert.equal((await save(a, document())).status, 500)
@@ -114,7 +116,7 @@ test('Soundpad audit failure rolls back the document write', async () => {
 })
 
 test('Soundpad accepts a valid 100-pad document within the HTTP byte limit', async () => {
-  const a = await h.signIn(), changed = { version: 1, volume: 75, pads: Array.from({ length: 100 }, () => ({
+  const a = await signInPro(), changed = { version: 1, volume: 75, pads: Array.from({ length: 100 }, () => ({
     ...document().pads[0], name: 'a'.repeat(40), displayName: 'b'.repeat(255), hotkey: '',
     source: { provider: 'myinstants', slug: 's'.repeat(160), name: 'n'.repeat(160), sound: 'https://www.myinstants.com/media/sounds/' + 'c'.repeat(1727) + '.mp3' },
   })) }
@@ -125,7 +127,7 @@ test('Soundpad accepts a valid 100-pad document within the HTTP byte limit', asy
 })
 
 test('Soundpad play modes round-trip for capable clients while older saves preserve them', async () => {
-  const user = await h.signIn(), changed = document()
+  const user = await signInPro(), changed = document()
   Object.assign(changed.pads[0], { playMode: 'hold' })
   const features = { 'x-judytik-soundpad-features': 'play-modes' }
   const write = (body: unknown, revision: string, capable = true) => call(user, {

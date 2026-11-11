@@ -1,3 +1,5 @@
+import {CLOCK,type Clock,systemClock} from '../auth/clock.js'
+import {userHasPro,assertPresetPlan} from '../entitlements/plan-access.js'
 import { Inject, Injectable } from '@nestjs/common'
 import { PrismaService } from '../database/prisma.service.js'
 import type { VerifiedSession } from '../auth/auth.service.js'
@@ -21,7 +23,7 @@ function dto(row: ActionPreset): Preset {
 }
 @Injectable()
 export class PresetsService {
-  constructor(@Inject(PrismaService) private readonly db: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly db: PrismaService, @Inject(CLOCK) private readonly clock: Clock = systemClock) {}
   async list(
     actor: VerifiedSession,
     input: unknown,
@@ -95,6 +97,7 @@ export class PresetsService {
           current!.revision !== condition.revision
         )
           throw new ApiError(412, 'PRESET_VERSION_CONFLICT')
+        assertPresetPlan(await userHasPro(tx,actor.userId,this.clock),body.actions,current && !current.deletedAt ? current.actions as unknown as typeof body.actions : [])
         const giftIds = [
           ...new Set(
             body.actions

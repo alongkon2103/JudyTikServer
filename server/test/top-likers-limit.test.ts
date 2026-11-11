@@ -1,3 +1,4 @@
+import {proGrants} from './support/plan-access.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {defaultOverlayData} from '../../shared/overlays.js'
@@ -9,6 +10,6 @@ test('Top Likers limit is projected for old clients without mutating storage',as
  const next=await controller.get({headers:{'x-judytik-overlay-features':'slider,big-gift-ranking,top-likers-limit'},verifiedSession:{}} as any,res as any);assert.equal(next.data.widgets['top-likers'].likerLimit,5)
 })
 test('old clients saving other overlays preserve the chosen Top Likers limit',async()=>{
- const data=defaultOverlayData();data.widgets['top-likers'].likerLimit=5;let saved:any;const tx={$queryRaw:async()=>[],overlaysWorkspace:{findUnique:async()=>({revision:1n,data}),update:async({data}:any)=>{saved=data.data;return{revision:2n,data:saved}}},auditEvent:{create:async()=>({})}}
+ const data=defaultOverlayData();data.widgets['top-likers'].likerLimit=5;let saved:any;const tx={entitlementGrant:proGrants,$queryRaw:async()=>[],overlaysWorkspace:{findUnique:async()=>({revision:1n,data}),update:async({data}:any)=>{saved=data.data;return{revision:2n,data:saved}}},auditEvent:{create:async()=>({})}}
  const old=structuredClone(data);delete old.widgets['top-likers'].likerLimit;await new OverlaysService({withUserContext:async(_owner:string,fn:any)=>fn(tx)} as any).save({userId:'a',sessionId:'s'} as any,old,'"1"','test');assert.equal(saved.widgets['top-likers'].likerLimit,5)
 })

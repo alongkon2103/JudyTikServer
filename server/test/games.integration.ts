@@ -1,3 +1,4 @@
+import {grantTestPro} from './support/pro-account.js'
 import 'reflect-metadata';
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -61,6 +62,7 @@ test('all Judy game presets import into real account storage with catalog warnin
         previous.push(...(await admin.query('SELECT id, aliases FROM judytik.gifts WHERE id = ANY($1::text[])', [seededIds])).rows);
         for (const [id, names] of gifts) await admin.query('INSERT INTO judytik.gifts(id,aliases,search_text) VALUES($1,$2,$3) ON CONFLICT(id) DO UPDATE SET aliases=EXCLUDED.aliases', [id, [...names], [...names].join(' ')]);
         const h = authHarness(db), account = await h.signIn({ provider: 'discord' }), other = await h.signIn({ provider: 'discord' });
+        await grantTestPro(db,account.session.userId); await grantTestPro(db,other.session.userId);
         const presets = new PresetsService(db);
         let importedRules = 0, importedEffects = 0, skipped = 0, warnings = 0;
         for (const original of source.games) {

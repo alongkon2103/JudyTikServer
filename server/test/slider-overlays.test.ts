@@ -1,3 +1,4 @@
+import {proGrants} from './support/plan-access.js'
 import 'reflect-metadata'
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -36,7 +37,7 @@ test('Existing eight-widget documents hydrate Slider without changing saved sett
 test('Overlay service persists Slider and preserves it when an older desktop saves',async()=>{
  let row:any=null
  const tx={
-  $queryRaw:async()=>[],auditEvent:{create:async()=>({})},
+  entitlementGrant:proGrants,$queryRaw:async()=>[],auditEvent:{create:async()=>({})},
   overlaysWorkspace:{findUnique:async()=>row,create:async({data}:any)=>(row={...structuredClone(data),revision:1n}),update:async({data}:any)=>(row={...row,data:structuredClone(data.data),revision:row.revision+1n})},
  }
  const db={withUserContext:async(_user:unknown,run:(tx:unknown)=>unknown)=>run(tx)} as unknown as PrismaService

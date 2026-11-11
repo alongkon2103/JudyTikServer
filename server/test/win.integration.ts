@@ -1,3 +1,4 @@
+import {grantTestPro} from './support/pro-account.js'
 import 'reflect-metadata'
 import {test,before,after} from 'node:test'
 import assert from 'node:assert/strict'
@@ -12,7 +13,7 @@ import {CLOCK} from '../src/auth/clock.js'
 import {authHarness} from './support/auth-flow.js'
 const config=readConfig(process.env),db=new PrismaService(config),h=authHarness(db)
 let app:NestExpressApplication,base:string,a:Awaited<ReturnType<typeof h.signIn>>,other:typeof a,same:typeof a
-before(async()=>{await db.onModuleInit();const subject=randomUUID();a=await h.signIn({subject});same=await h.signIn({subject});other=await h.signIn();const module=await Test.createTestingModule({imports:[AppModule.register({...config,auth:h.config})]}).overrideProvider(CLOCK).useValue(h.clock).compile();app=configureApp(module.createNestApplication<NestExpressApplication>({logger:false}));await app.listen(0,'127.0.0.1');base=await app.getUrl()})
+before(async()=>{await db.onModuleInit();const subject=randomUUID();a=await h.signIn({subject});same=await h.signIn({subject});other=await h.signIn();await grantTestPro(db,a.session.userId,h.clock);const module=await Test.createTestingModule({imports:[AppModule.register({...config,auth:h.config})]}).overrideProvider(CLOCK).useValue(h.clock).compile();app=configureApp(module.createNestApplication<NestExpressApplication>({logger:false}));await app.listen(0,'127.0.0.1');base=await app.getUrl()})
 after(async()=>{await app?.close();await db.onModuleDestroy()})
 const call=(options:RequestInit={},user:typeof a=a)=>fetch(base+'/v1/me/win',{...options,headers:{'content-type':'application/json',authorization:'Bearer '+user.tokens.access_token,...options.headers}})
 test('WIN HTTP resource requires native auth, validates input and separates accounts',async()=>{

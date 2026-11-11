@@ -1,3 +1,4 @@
+import {proGrants} from './support/plan-access.js'
 import 'reflect-metadata'
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -39,7 +40,7 @@ test('Overlay capability projection hides new options individually without mutat
 
 test('Older saves preserve hidden overlay options and capable saves can replace them',async()=>{
  let row:any=null
- const tx={$queryRaw:async()=>[],auditEvent:{create:async()=>({})},overlaysWorkspace:{findUnique:async()=>row,create:async({data}:any)=>(row={...structuredClone(data),revision:1n}),update:async({data}:any)=>(row={...row,data:structuredClone(data.data),revision:row.revision+1n})}}
+ const tx={entitlementGrant:proGrants,$queryRaw:async()=>[],auditEvent:{create:async()=>({})},overlaysWorkspace:{findUnique:async()=>row,create:async({data}:any)=>(row={...structuredClone(data),revision:1n}),update:async({data}:any)=>(row={...row,data:structuredClone(data.data),revision:row.revision+1n})}}
  const service=new OverlaysService({withUserContext:async(_:unknown,run:any)=>run(tx)} as any),actor={userId:randomUUID(),sessionId:randomUUID()} as any
  const data=defaultOverlayData() as any;Object.assign(data.widgets.spin,{giftId:'1',spinGiftIds:['1','2'],spinSound:false,spinVolume:15});data.widgets.leaderboard.rankLimit=5;data.widgets['gift-jar'].rankLimit=5
  await service.save(actor,data,'"0"',randomUUID())
@@ -53,7 +54,7 @@ test('Older saves preserve hidden overlay options and capable saves can replace 
 
 test('A capable desktop can clear gift selection and return to legacy wildcard matching',async()=>{
  const data=defaultOverlayData() as any;data.widgets.spin.spinGiftIds=['1','2'];let stored:any
- const tx={$queryRaw:async()=>[],auditEvent:{create:async()=>({})},overlaysWorkspace:{findUnique:async()=>({revision:1n,data}),update:async({data}:any)=>(stored=data.data,{revision:2n,data:stored})}}
+ const tx={entitlementGrant:proGrants,$queryRaw:async()=>[],auditEvent:{create:async()=>({})},overlaysWorkspace:{findUnique:async()=>({revision:1n,data}),update:async({data}:any)=>(stored=data.data,{revision:2n,data:stored})}}
  const service=new OverlaysService({withUserContext:async(_:unknown,run:any)=>run(tx)} as any)
  const controller=new OverlaysController(service),input=structuredClone(data);delete input.widgets.spin.spinGiftIds;input.widgets.spin.giftId='*'
  const response=await controller.save({headers:{'if-match':'"1"','x-judytik-overlay-features':'slider,spin-multi-gifts'},verifiedSession:{userId:randomUUID(),sessionId:randomUUID()}} as any,input,{setHeader(){}} as any)

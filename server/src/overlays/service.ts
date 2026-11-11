@@ -1,3 +1,6 @@
+import {CLOCK,type Clock,systemClock} from '../auth/clock.js'
+import {userHasPro,assertOverlayPlan} from '../entitlements/plan-access.js'
+import {PRO_WIDGETS} from '../../../shared/plan-access.js'
 import { Inject, Injectable } from '@nestjs/common'
 import { PrismaService } from '../database/prisma.service.js'
 import type { VerifiedSession } from '../auth/auth.service.js'
@@ -8,7 +11,7 @@ import { audit } from '../audit/write.js'
 
 @Injectable()
 export class OverlaysService {
-  constructor(@Inject(PrismaService) private readonly db: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly db: PrismaService, @Inject(CLOCK) private readonly clock: Clock = systemClock) {}
 
   async get(actor: VerifiedSession) {
     return this.db.withUserContext(actor.userId, async tx => {
@@ -50,6 +53,21 @@ export class OverlaysService {
             if(!capabilities.includes(optionFeatures[key])&&!Object.hasOwn(input.widgets[kind],key)&&saved&&Object.hasOwn(saved,key))data.widgets[kind][key]=saved[key]
         }
       }
+      const pro = await userHasPro(tx,actor.userId,this.clock)
+      if (!pro) {
+        const saved = current && validOverlayData(current.data) ? hydrateOverlayData(current.data) : defaultOverlayData()
+        for (const kind of PRO_WIDGETS as Array<keyof typeof saved.widgets>) {
+          const incoming = input.widgets[kind]
+          for (const key of Object.keys(saved.widgets[kind]) as Array<keyof typeof incoming>)
+            if (!incoming || !Object.hasOwn(incoming,key)) data.widgets[kind][key] = saved.widgets[kind][key]
+        }
+      }
+      // Released desktops receive decorated jar themes projected to plain-white.
+      // A FREE user's unrelated edit must retain the original stored PRO theme.
+      if (!pro && !capabilities.includes('slider') && !Object.hasOwn(input.widgets,'slider') &&
+          current && validOverlayData(current.data) && input.widgets['gift-jar'].theme === 'plain-white')
+        data.widgets['gift-jar'].theme = current.data.widgets['gift-jar'].theme
+      assertOverlayPlan(pro,data,current?.data)
       const row = current
         ? await tx.overlaysWorkspace.update({ where: { userId: actor.userId }, data: { data, revision: { increment: 1 } } })
         : await tx.overlaysWorkspace.create({ data: { userId: actor.userId, data } })

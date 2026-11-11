@@ -190,6 +190,7 @@ try {
       'test/admin-users.integration.ts',
       'test/direct-launch.integration.ts',
       'test/presets.integration.ts',
+      'test/plan-access.integration.ts',
       'test/presets-http.integration.ts',
       'test/win.integration.ts',
       'test/soundpad.integration.ts',
