@@ -10,6 +10,11 @@ const pad = (extra = {}) => ({
 const data = (pads: unknown[] = []) => ({ version: 1, volume: 75, pads })
 const source = { provider: 'myinstants', slug: 'air-horn', name: 'Air horn', sound: 'https://www.myinstants.com/media/sounds/air-horn.mp3' }
 
+test('Soundpad play modes are optional and accept only hold, toggle or restart',()=>{
+ for(const playMode of ['hold','toggle','restart'])assert.equal(validSoundpadData(data([pad({playMode})])),true)
+ for(const playMode of [null,undefined,'loop',false])assert.equal(validSoundpadData(data([pad({playMode})])),false)
+})
+
 test('Soundpad defaults are fresh editable documents', () => {
   const first = defaultSoundpadData()
   assert.deepEqual(first, { version: 1, volume: 75, enabled: true, pads: [] })

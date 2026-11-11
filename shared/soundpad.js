@@ -34,11 +34,12 @@ export function validSoundpadData(value) {
     || !Array.isArray(value.pads) || value.pads.length > 100) return false
   const ids = new Set(), hotkeys = new Set()
   for (const pad of value.pads) {
-    if (!fields(pad, ['id', 'name', 'category', 'bindingId', 'displayName', 'hotkey'], ['source'])
+    if (!fields(pad, ['id', 'name', 'category', 'bindingId', 'displayName', 'hotkey'], ['source', 'playMode'])
       || !uuid(pad.id) || ids.has(pad.id.toLowerCase()) || !uuid(pad.bindingId)
       || !text(pad.name, 40) || !['reaction', 'transition', 'effect'].includes(pad.category)
       || !text(pad.displayName, 255) || /[\/\\]/.test(pad.displayName)
       || typeof pad.hotkey !== 'string' || pad.hotkey.length > 80 || /[\x00-\x1f\x7f-\x9f]/.test(pad.hotkey)
+      || (Object.hasOwn(pad, 'playMode') && !['hold', 'toggle', 'restart'].includes(pad.playMode))
       || (Object.hasOwn(pad, 'source') && !validSoundSource(pad.source))) return false
     ids.add(pad.id.toLowerCase())
     if (pad.hotkey) {

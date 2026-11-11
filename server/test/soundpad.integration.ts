@@ -123,3 +123,21 @@ test('Soundpad accepts a valid 100-pad document within the HTTP byte limit', asy
   assert.equal(written.status, 200)
   assert.deepEqual(await (await call(a)).json(), { revision: '1', data: changed })
 })
+
+test('Soundpad play modes round-trip for capable clients while older saves preserve them', async () => {
+  const user = await h.signIn(), changed = document()
+  Object.assign(changed.pads[0], { playMode: 'hold' })
+  const features = { 'x-judytik-soundpad-features': 'play-modes' }
+  const write = (body: unknown, revision: string, capable = true) => call(user, {
+    method: 'PUT', headers: { 'if-match': '"' + revision + '"', ...(capable ? features : {}) }, body: JSON.stringify(body),
+  })
+  assert.equal((await write(changed, '0')).status, 200)
+  assert.deepEqual((await (await call(user, { headers: features })).json()).data, changed)
+  const legacy = structuredClone(changed)
+  delete (legacy.pads[0] as any).playMode
+  legacy.volume = 30
+  assert.deepEqual((await (await write(legacy, '1', false)).json()).data, legacy)
+  assert.equal((await (await call(user, { headers: features })).json()).data.pads[0].playMode, 'hold')
+  assert.equal((await write(legacy, '2')).status, 200)
+  assert.equal((await (await call(user, { headers: features })).json()).data.pads[0].playMode, undefined)
+})

@@ -2856,6 +2856,14 @@
           },
           "source": {
             "$ref": "#/components/schemas/SoundSource"
+          },
+          "playMode": {
+            "type": "string",
+            "enum": [
+              "restart",
+              "hold",
+              "toggle"
+            ]
           }
         }
       },

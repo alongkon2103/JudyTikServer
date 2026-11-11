@@ -694,6 +694,8 @@ export interface components {
             displayName: string;
             hotkey: string;
             source?: components["schemas"]["SoundSource"];
+            /** @enum {string} */
+            playMode?: "restart" | "hold" | "toggle";
         };
         SoundpadData: {
             /** @constant */

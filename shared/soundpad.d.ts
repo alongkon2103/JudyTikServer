@@ -11,6 +11,7 @@ export interface SoundPad {
   bindingId: string
   displayName: string
   hotkey: string
+  playMode?: 'hold' | 'toggle' | 'restart'
   source?: SoundSource
 }
 export interface SoundpadData {
