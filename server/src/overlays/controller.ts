@@ -12,10 +12,11 @@ export class OverlaysController {
   private response(value: Awaited<ReturnType<OverlaysService['get']>>, req: SessionRequest, body?: unknown) {
     const features=String(req.headers['x-judytik-overlay-features']??'').split(',')
     const hidden = [
+      ...(!features.includes('custom-appearance')?['appearance']:[]),
       ...(!features.includes('spin-multi-gifts')?['spinGiftIds']:[]),
       ...(!features.includes('ranking-limit')?['rankLimit']:[]),
       ...(!features.includes('spin-sound')?['spinSound','spinVolume']:[]),
-    ] as Array<'spinGiftIds'|'rankLimit'|'spinSound'|'spinVolume'>
+    ] as Array<'appearance'|'spinGiftIds'|'rankLimit'|'spinSound'|'spinVolume'>
     if(hidden.length){value=structuredClone(value);for(const widget of Object.values(value.data.widgets))for(const key of hidden)delete widget[key]}
     if(!features.includes('top-likers-limit')){value=structuredClone(value);delete value.data.widgets['top-likers'].likerLimit}
     if(!features.includes('big-gift-ranking')){value=structuredClone(value);delete value.data.widgets['big-gift'].bigGiftLimit}

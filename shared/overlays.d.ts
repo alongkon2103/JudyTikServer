@@ -4,7 +4,10 @@ export type OverlayMetric = 'coins' | 'gifts' | 'likes' | 'follows'
 export interface SpinOption {id:string;label:string;imageUrl?:string;imageBindingId?:string;imageDisplayName?:string;actionId?:string;weight?:number;textColor?:string|null}
 export function safeSpinImage(value:unknown):value is string
 export function validSpinOption(value:unknown):value is SpinOption
+export interface WidgetAppearance {text:string;title:string;detail:string;value:string;rank:string;border:string;outline:string;outlineSize:number}
+export function validWidgetAppearance(value:unknown):value is Partial<WidgetAppearance>
 export interface WidgetConfig {
+  appearance?: Partial<WidgetAppearance>
   spinGiftIds?: string[]
   spinSound?: boolean
   spinVolume?: number

@@ -25,6 +25,13 @@ const integer = (value,min,max) => Number.isSafeInteger(value) && value >= min &
 const text = value => typeof value === 'string' && value.trim().length > 0 && value.length <= 40
   && !/[\x00-\x1f\x7f-\x9f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/.test(value)
 const color = value => typeof value === 'string' && /^#[a-f0-9]{6}$/i.test(value)
+export function validWidgetAppearance(value){
+ const colors=['text','title','detail','value','rank','border','outline']
+ return value!==null&&typeof value==='object'
+  && exact(value,[...colors,'outlineSize'].filter(key=>Object.hasOwn(value,key)))
+  && colors.every(key=>!Object.hasOwn(value,key)||color(value[key]))
+  && (!Object.hasOwn(value,'outlineSize')||integer(value.outlineSize,0,6))
+}
 
 export function defaultWidget(kind) {
   const item=widgetKinds.find(item=>item.id===kind)
@@ -47,7 +54,7 @@ export function validSpinOption(value) {
 }
 export function validWidget(value) {
   try {
-    return exact(value,[...keys,...['spinGiftIds','spinSound','spinVolume','rankLimit','bigGiftLimit','likerLimit','showRanking','showTotal','showRecentGift','spinOptions','sliderItems','sliderSpeed','sliderSize','sliderGap','sliderWidth','sliderDirection','sliderTextColor'].filter(key=>Object.hasOwn(value,key))]) && ['showRanking','showTotal','showRecentGift'].every(key=>!Object.hasOwn(value,key)||typeof value[key]==='boolean') && typeof value.font === 'string' && Object.hasOwn(fontOptions,value.font)
+    return exact(value,[...keys,...['appearance','spinGiftIds','spinSound','spinVolume','rankLimit','bigGiftLimit','likerLimit','showRanking','showTotal','showRecentGift','spinOptions','sliderItems','sliderSpeed','sliderSize','sliderGap','sliderWidth','sliderDirection','sliderTextColor'].filter(key=>Object.hasOwn(value,key))]) && (!Object.hasOwn(value,'appearance')||validWidgetAppearance(value.appearance)) && ['showRanking','showTotal','showRecentGift'].every(key=>!Object.hasOwn(value,key)||typeof value[key]==='boolean') && typeof value.font === 'string' && Object.hasOwn(fontOptions,value.font)
       && (!Object.hasOwn(value,'spinGiftIds')||array(value.spinGiftIds,1,100)&&value.spinGiftIds.every(id=>typeof id==='string'&&/^[1-9][0-9]{0,19}$/.test(id))&&new Set(value.spinGiftIds).size===value.spinGiftIds.length)
       && (!Object.hasOwn(value,'spinSound')||typeof value.spinSound==='boolean')
       && (!Object.hasOwn(value,'spinVolume')||integer(value.spinVolume,0,100))

@@ -787,6 +787,16 @@ export interface components {
              * @enum {integer}
              */
             likerLimit?: 5 | 10;
+            appearance?: {
+                text?: string;
+                title?: string;
+                detail?: string;
+                value?: string;
+                rank?: string;
+                border?: string;
+                outline?: string;
+                outlineSize?: number;
+            };
         };
         OverlayData: {
             /** @constant */
