@@ -1,3 +1,4 @@
+import {mediaVolumeResponse} from './media-volume.js'
 import { ApiError } from '../http/api-error.js'
 import {
   Controller,
@@ -22,8 +23,8 @@ export class PresetsController {
   constructor(
     @Inject(PresetsService) private readonly presets: PresetsService,
   ) {}
-  @Get() list(@Req() req: SessionRequest, @Query() query: unknown) {
-    return this.presets.list(req.verifiedSession, query)
+  @Get() async list(@Req() req: SessionRequest, @Query() query: unknown) {
+    return mediaVolumeResponse(await this.presets.list(req.verifiedSession, query),req.headers['x-judytik-preset-features'])
   }
   @Get(':presetId') async get(
     @Req() req: SessionRequest,
@@ -32,7 +33,7 @@ export class PresetsController {
   ) {
     const value = await this.presets.get(req.verifiedSession, id)
     res.setHeader('etag', '"' + value.revision + '"')
-    return value
+    return mediaVolumeResponse(value,req.headers['x-judytik-preset-features'])
   }
   @Put(':presetId') async save(
     @Req() req: SessionRequest,
@@ -49,10 +50,11 @@ export class PresetsController {
         ifNoneMatch: req.headers['if-none-match'],
       },
       req.headers['x-request-id'] as string,
+      req.headers['x-judytik-preset-features'],
     )
     res.status(result.created ? 201 : 200)
     res.setHeader('etag', '"' + result.value.revision + '"')
-    return result.value
+    return mediaVolumeResponse(result.value,req.headers['x-judytik-preset-features'])
   }
   @Delete(':presetId') @HttpCode(204) async remove(
     @Req() req: SessionRequest,

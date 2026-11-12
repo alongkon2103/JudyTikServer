@@ -1,3 +1,4 @@
+import {retainMediaVolumes} from './media-volume.js'
 import {CLOCK,type Clock,systemClock} from '../auth/clock.js'
 import {userHasPro,assertPresetPlan} from '../entitlements/plan-access.js'
 import { Inject, Injectable } from '@nestjs/common'
@@ -80,6 +81,7 @@ export class PresetsService {
     input: unknown,
     headers: { ifMatch?: unknown; ifNoneMatch?: unknown },
     requestId: string,
+    features?:unknown,
   ): Promise<{ value: Preset; created: boolean }> {
     const id = assertContract('UUID', value),
       condition = precondition(headers.ifMatch, headers.ifNoneMatch),
@@ -97,6 +99,7 @@ export class PresetsService {
           current!.revision !== condition.revision
         )
           throw new ApiError(412, 'PRESET_VERSION_CONFLICT')
+        retainMediaVolumes(body.actions,current&&!current.deletedAt?current.actions as unknown as typeof body.actions:[],features)
         assertPresetPlan(await userHasPro(tx,actor.userId,this.clock),body.actions,current && !current.deletedAt ? current.actions as unknown as typeof body.actions : [])
         const giftIds = [
           ...new Set(

@@ -1,3 +1,4 @@
+import {mediaVolumeResponse} from '../presets/media-volume.js';
 import { Controller, Get, Post, Put, Delete, Param, Body, Query, Req, Res, Inject, UseGuards } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AdminGuard } from '../http/admin.guard.js';
@@ -30,13 +31,13 @@ export class GamesController {
     res: Response) { return etag(res, await this.service.get(id)); }
     @Get(':id/presets')
     @UseGuards(SessionGuard)
-    presets(
+    async presets(
     @Req() req:SessionRequest,
     @Res({passthrough:true}) res:Response,
     @Param('id')
     id: string,
     @Query()
-    query: unknown) { res.setHeader('Cache-Control','no-store');return this.service.gamePresets(id, false, query, req.verifiedSession); }
+    query: unknown) { res.setHeader('Cache-Control','no-store');return mediaVolumeResponse(await this.service.gamePresets(id, false, query, req.verifiedSession),req.headers['x-judytik-preset-features']); }
     @Get(':id/presets/:presetId')
     @UseGuards(SessionGuard)
     async preset(
@@ -46,7 +47,7 @@ export class GamesController {
     @Param('presetId')
     presetId: string,
     @Res({ passthrough: true })
-    res: Response) { res.setHeader('Cache-Control','no-store');return etag(res, await this.service.preset(id, presetId, false, req.verifiedSession)); }
+    res: Response) { res.setHeader('Cache-Control','no-store');return mediaVolumeResponse(etag(res, await this.service.preset(id, presetId, false, req.verifiedSession)),req.headers['x-judytik-preset-features']); }
     @Post(':id/presets/:presetId/import')
     @UseGuards(SessionGuard)
     async importPreset(
@@ -59,7 +60,7 @@ export class GamesController {
     @Body()
     body: unknown,
     @Res({ passthrough: true })
-    res: Response) { const result = await this.service.importPreset(req.verifiedSession, id, presetId, body, requestId(req)); etag(res, result.preset); return result; }
+    res: Response) { const result = await this.service.importPreset(req.verifiedSession, id, presetId, body, requestId(req)); etag(res, result.preset); return mediaVolumeResponse(result,req.headers['x-judytik-preset-features']); }
 }
 @Controller('admin/game-categories')
 @UseGuards(AdminGuard)
