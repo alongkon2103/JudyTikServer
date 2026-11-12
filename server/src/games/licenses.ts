@@ -41,8 +41,15 @@ export class ShopLicenseClient {
 export class GameLicensesService {
  client:ShopLicenseClient;
  constructor(@Inject(PrismaService) private db:PrismaService,@Inject(CONFIG) config:ServerConfig,@Inject(CLOCK) private clock:Clock){this.client=new ShopLicenseClient(config.shop,()=>+clock.now())}
- async snapshot(actor:VerifiedSession){const email=await this.db.client.userEmail.findUnique({where:{userId:actor.userId}});if(!email?.verifiedAt)return{state:'email_required' as const,licenses:[],checkedAt:this.clock.now().toISOString()};const licenses=await this.client.lookup(email.emailKey);return{state:'ready' as const,licenses,checkedAt:this.clock.now().toISOString()}}
- async require(actor:VerifiedSession|undefined,slug:string){if(!actor)throw new ApiError(401,'AUTH_UNAUTHORIZED');const value=await this.snapshot(actor);if(value.state==='email_required')throw new ApiError(403,'GAME_LICENSE_EMAIL_REQUIRED');const license=value.licenses.find(x=>x.gameSlug===slug);if(!license||license.status!=='active'||license.expiresAt!==null&&Date.parse(license.expiresAt)<=+this.clock.now())throw new ApiError(403,'GAME_LICENSE_REQUIRED')}
+ async snapshot(actor:VerifiedSession){
+  if(!actor)throw new ApiError(401,'AUTH_UNAUTHORIZED');
+  // Compatible access snapshot for already-installed Desktop versions.
+  // No shop calls and no changes to purchases, PRO or expiry records.
+  const games=await this.db.client.game.findMany({where:{status:'published',OR:[{categoryId:null},{category:{status:'active'}}]},select:{slug:true},orderBy:{slug:'asc'},take:10000});
+  return {state:'ready' as const,licenses:games.map(game=>({gameSlug:game.slug,status:'active' as const,expiresAt:null})),checkedAt:this.clock.now().toISOString()};
+ }
+ async require(actor:VerifiedSession|undefined,_slug:string){if(!actor)throw new ApiError(401,'AUTH_UNAUTHORIZED')}
+
 }
 @Controller('me/game-licenses')
 @UseGuards(SessionGuard)

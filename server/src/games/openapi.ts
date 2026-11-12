@@ -32,11 +32,11 @@ export function addGamesOpenApi(doc: any) {
     doc.paths['/games/{id}/presets/{presetId}'] = { get: operation('getPublishedGamePreset', ref('GamePreset'), [parameter('id'), parameter('presetId')]) };
     for(const path of ['/games/{id}/presets','/games/{id}/presets/{presetId}']){
         doc.paths[path].get.security=[{desktopSession:[]}];
-        doc.paths[path].get.description='Requires verified-email purchase access to parent Game.slug. 403 GAME_LICENSE_REQUIRED or GAME_LICENSE_EMAIL_REQUIRED; 503 GAME_LICENSE_UNAVAILABLE. No PRO bypass. Response Cache-Control: no-store.';
+        doc.paths[path].get.description='Requires a signed-in account. Published game presets are open to all accounts without shop purchase checks. Draft and archived content remains hidden. FREE/PRO Action limits still apply to imports. Response Cache-Control: no-store.';
     }
     doc.components.schemas.GameLicenseSnapshot=json(z.object({state:z.enum(['ready','email_required']),licenses:shopResponse.shape.licenses,checkedAt:z.iso.datetime()}).strict(),'GameLicenseSnapshot');
     const lookup=operation('getMyGameLicenses',ref('GameLicenseSnapshot'));lookup.security=[{desktopSession:[]}] as any;
-    doc.paths['/me/game-licenses']={get:{...lookup,description:'Verified account email resolved on server; no caller email accepted. Returns game-level access for every preset; no customer identifiers or shop key. Cache-Control: no-store. Shop unavailable returns 503, not empty licenses.'}};
+    doc.paths['/me/game-licenses']={get:{...lookup,description:'Requires a signed-in account. Returns active access for published games in active categories or without a category, compatible with installed Desktop versions. No email verification or shop lookup is required; purchase and PRO records are unchanged. Cache-Control: no-store.'}};
     doc.components.schemas.GamePresetImportResult = { type: 'object', additionalProperties: false, required: ['preset', 'warnings', 'skippedActions'], properties: { preset: ref('Preset'), warnings: { type: 'array', maxItems: 100, items: { type: 'string', maxLength: 500 } }, skippedActions: { type: 'integer', minimum: 0, maximum: 100 } } };
     const imp = operation('importCompatibleGamePreset', ref('GamePresetImportResult'), [parameter('id'), parameter('presetId')], false, undefined, true);
     imp.security = [{ desktopSession: [] }] as any;

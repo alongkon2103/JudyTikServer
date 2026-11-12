@@ -3952,7 +3952,7 @@
             }
           }
         },
-        "description": "Requires verified-email purchase access to parent Game.slug. 403 GAME_LICENSE_REQUIRED or GAME_LICENSE_EMAIL_REQUIRED; 503 GAME_LICENSE_UNAVAILABLE. No PRO bypass. Response Cache-Control: no-store."
+        "description": "Requires a signed-in account. Published game presets are open to all accounts without shop purchase checks. Draft and archived content remains hidden. FREE/PRO Action limits still apply to imports. Response Cache-Control: no-store."
       }
     },
     "/games/{id}/presets/{presetId}": {
@@ -4122,7 +4122,7 @@
             }
           }
         },
-        "description": "Requires verified-email purchase access to parent Game.slug. 403 GAME_LICENSE_REQUIRED or GAME_LICENSE_EMAIL_REQUIRED; 503 GAME_LICENSE_UNAVAILABLE. No PRO bypass. Response Cache-Control: no-store."
+        "description": "Requires a signed-in account. Published game presets are open to all accounts without shop purchase checks. Draft and archived content remains hidden. FREE/PRO Action limits still apply to imports. Response Cache-Control: no-store."
       }
     },
     "/me/game-licenses": {
@@ -4273,7 +4273,7 @@
             }
           }
         },
-        "description": "Verified account email resolved on server; no caller email accepted. Returns game-level access for every preset; no customer identifiers or shop key. Cache-Control: no-store. Shop unavailable returns 503, not empty licenses."
+        "description": "Requires a signed-in account. Returns active access for published games in active categories or without a category, compatible with installed Desktop versions. No email verification or shop lookup is required; purchase and PRO records are unchanged. Cache-Control: no-store."
       }
     },
     "/games/{id}/presets/{presetId}/import": {
