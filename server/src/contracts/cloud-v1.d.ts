@@ -565,6 +565,8 @@ export interface components {
              */
             kind: "sound";
             media: components["schemas"]["MediaBinding"];
+            /** @description Playback volume percent. Omitted means 100; 0 mutes audio. */
+            volume?: number;
         };
         VideoEffect: {
             /**
@@ -573,6 +575,8 @@ export interface components {
              */
             kind: "video";
             media: components["schemas"]["MediaBinding"];
+            /** @description Playback volume percent. Omitted means 100; 0 mutes audio. */
+            volume?: number;
         };
         KeyboardEffect: {
             /**

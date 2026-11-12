@@ -2263,6 +2263,12 @@
           },
           "media": {
             "$ref": "#/components/schemas/MediaBinding"
+          },
+          "volume": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Playback volume percent. Omitted means 100; 0 mutes audio."
           }
         },
         "required": [
@@ -2280,6 +2286,12 @@
           },
           "media": {
             "$ref": "#/components/schemas/MediaBinding"
+          },
+          "volume": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Playback volume percent. Omitted means 100; 0 mutes audio."
           }
         },
         "required": [
